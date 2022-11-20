@@ -1,93 +1,98 @@
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract MyGov is ERC20{
-    function MyGov(){
+contract MyGovToken is ERC20("MyGov Token", "MGT"){
+    
+    address payable tokenOwner;
+    
+    constructor(uint tokensupply) {
+        tokenOwner = payable(msg.sender);
+        _mint(msg.sender, tokensupply * 10**18);
+    }
+
+    function delegateVoteTo() public{
         // TODO: Implement function
     }
 
-    function delegateVoteTo(){
+    function donateEther() external payable {
+        tokenOwner.transfer(123);
+    }
+
+    function donateMyGovToken(uint amount) public {
+        transfer(tokenOwner, amount);
+    }
+
+    function voteForProjectProposal()public{
         // TODO: Implement function
     }
 
-    function donateEther(){
+    function voteForProjectPayment()public{
         // TODO: Implement function
     }
 
-    function donateMyGovToken(){
+    function submitProjectProposal()public{
         // TODO: Implement function
     }
 
-    function voteForProjectProposal(){
+    function submitSurvey()public{
         // TODO: Implement function
     }
 
-    function voteForProjectPayment(){
+    function takeSurvey()public{
         // TODO: Implement function
     }
 
-    function submitProjectProposal(){
+    function reserveProjectGrant()public{
         // TODO: Implement function
     }
 
-    function submitSurvey(){
+    function withdrawProjectPayment()public{
         // TODO: Implement function
     }
 
-    function takeSurvey(){
+    function getSurveyResults()public{
         // TODO: Implement function
     }
 
-    function reserveProjectGrant(){
+    function getSurveyInfo()public{
         // TODO: Implement function
     }
 
-    function withdrawProjectPayment(){
+    function getSurveyOwner()public{
         // TODO: Implement function
     }
 
-    function getSurveyResults(){
+    function getIsProjectFunded()public{
         // TODO: Implement function
     }
 
-    function getSurveyInfo(){
+    function getProjectNextPayment()public{
         // TODO: Implement function
     }
 
-    function getSurveyOwner(){
+    function getProjectOwner()public{
         // TODO: Implement function
     }
 
-    function getIsProjectFunded(){
+    function getProjectInfo()public{
         // TODO: Implement function
     }
 
-    function getProjectNextPayment(){
+    function getNoOfProjectProposals()public{
         // TODO: Implement function
     }
 
-    function getProjectOwner(){
+    function getNoOfFundedProjects()public{
         // TODO: Implement function
     }
 
-    function getProjectInfo(){
+    function getEtherReceivedByProject()public{
         // TODO: Implement function
     }
 
-    function getNoOfProjectProposals(){
-        // TODO: Implement function
-    }
-
-    function getNoOfFundedProjects(){
-        // TODO: Implement function
-    }
-
-    function getEtherReceivedByProject(){
-        // TODO: Implement function
-    }
-
-    function getNoOfSurveys(){
+    function getNoOfSurveys()public{
         // TODO: Implement function
     }
 }
