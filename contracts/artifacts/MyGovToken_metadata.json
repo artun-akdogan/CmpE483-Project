@@ -171,7 +171,18 @@
 				"type": "function"
 			},
 			{
-				"inputs": [],
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "memberaddr",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "projectid",
+						"type": "uint256"
+					}
+				],
 				"name": "delegateVoteTo",
 				"outputs": [],
 				"stateMutability": "nonpayable",
@@ -214,22 +225,40 @@
 			{
 				"inputs": [],
 				"name": "getNoOfFundedProjects",
-				"outputs": [],
-				"stateMutability": "nonpayable",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "numfunded",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
 				"inputs": [],
 				"name": "getNoOfProjectProposals",
-				"outputs": [],
-				"stateMutability": "nonpayable",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "numofproposals",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
 				"inputs": [],
 				"name": "getNoOfSurveys",
-				"outputs": [],
-				"stateMutability": "nonpayable",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "numsurveys",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -261,10 +290,22 @@
 				"type": "function"
 			},
 			{
-				"inputs": [],
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "surveyid",
+						"type": "uint256"
+					}
+				],
 				"name": "getSurveyOwner",
-				"outputs": [],
-				"stateMutability": "nonpayable",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "surveyowner",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -312,6 +353,40 @@
 				"type": "function"
 			},
 			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "proposals",
+				"outputs": [
+					{
+						"internalType": "bytes",
+						"name": "name",
+						"type": "bytes"
+					},
+					{
+						"internalType": "uint256",
+						"name": "voteCount",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isWon",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "isFunded",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
 				"inputs": [],
 				"name": "reserveProjectGrant",
 				"outputs": [],
@@ -319,7 +394,28 @@
 				"type": "function"
 			},
 			{
-				"inputs": [],
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "ipfshash",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "votedeadline",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "paymentamounts",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "payschedule",
+						"type": "uint256[]"
+					}
+				],
 				"name": "submitProjectProposal",
 				"outputs": [],
 				"stateMutability": "nonpayable",
@@ -330,6 +426,25 @@
 				"name": "submitSurvey",
 				"outputs": [],
 				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "surveys",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "name",
+						"type": "bytes32"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -426,10 +541,55 @@
 				"type": "function"
 			},
 			{
-				"inputs": [],
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "projectid",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "choice",
+						"type": "bool"
+					}
+				],
 				"name": "voteForProjectProposal",
 				"outputs": [],
 				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "voters",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "weight",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "voted",
+						"type": "bool"
+					},
+					{
+						"internalType": "address",
+						"name": "delegate",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "votedProposal",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -534,11 +694,11 @@
 			]
 		},
 		"contracts/MyGov.sol": {
-			"keccak256": "0x155aa8183ae1a9b732b37ef8a596eab982dcece3594abc39061c53f843238752",
+			"keccak256": "0x41a4e1902b3da2c29fc54ad842286e09c5981c16202f5743fc1bb0e5898cb277",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://e711f2b9978cdc3ca8ef17b48a8414e19a91d083445ee10eaa50debb7c747a62",
-				"dweb:/ipfs/QmVfpebD1fBWeQzg4Nc3XhjXbgMpL2HigNawXLy5etNN1E"
+				"bzz-raw://6973f0c2d1bf711869d4a27ffc3983b2dd83a02ce4f2b9cdfc6458ae3d035901",
+				"dweb:/ipfs/QmTP1nh8CLyRdhmoTa6JoBQPaJjYATsjtPqExqcWGvToVT"
 			]
 		}
 	},
