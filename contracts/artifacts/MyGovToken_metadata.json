@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.0+commit.c7dfd78e"
+		"version": "0.8.7+commit.e28d00a7"
 	},
 	"language": "Solidity",
 	"output": {
@@ -417,14 +417,47 @@
 					}
 				],
 				"name": "submitProjectProposal",
-				"outputs": [],
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "projectid",
+						"type": "uint256"
+					}
+				],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
-				"inputs": [],
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "ipfshash",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "surveydeadline",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "numchoices",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "atmostchoice",
+						"type": "uint256"
+					}
+				],
 				"name": "submitSurvey",
-				"outputs": [],
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "surveyid",
+						"type": "uint256"
+					}
+				],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			},
@@ -649,7 +682,7 @@
 		"compilationTarget": {
 			"contracts/MyGov.sol": "MyGovToken"
 		},
-		"evmVersion": "istanbul",
+		"evmVersion": "london",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
@@ -694,11 +727,11 @@
 			]
 		},
 		"contracts/MyGov.sol": {
-			"keccak256": "0x41a4e1902b3da2c29fc54ad842286e09c5981c16202f5743fc1bb0e5898cb277",
+			"keccak256": "0x609d07d48d61221debb5ea49fc339b0cd304cab33c079e93902c8916e3b3227d",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://6973f0c2d1bf711869d4a27ffc3983b2dd83a02ce4f2b9cdfc6458ae3d035901",
-				"dweb:/ipfs/QmTP1nh8CLyRdhmoTa6JoBQPaJjYATsjtPqExqcWGvToVT"
+				"bzz-raw://ae4346666b734118cfc455f5b592eb493db9c5f6aeca08f54b12ecacc6ffa7fe",
+				"dweb:/ipfs/QmcmZGoGBBCohy1ruDmXLxGQ3EshrdN6Co7HWgaTLejGG3"
 			]
 		}
 	},

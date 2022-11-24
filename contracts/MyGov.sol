@@ -7,7 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 //import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract MyGovToken is ERC20("MyGov Token", "MGT"){
-    
+    address payable tokenOwner;
+
     constructor(uint tokensupply) {
         tokenOwner = payable(msg.sender);
         _mint(msg.sender, tokensupply * 10**18);
@@ -21,22 +22,30 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     }
 
     struct Proposal {
-        bytes name;
+        string name;
+        address owner;
+        uint votedeadline;
+        uint[] paymentamounts;
+        uint[] payschedule;
         uint voteCount;
         bool isWon;
         bool isFunded;
     }
 
     struct Survey {
-        bytes32 name;
+        string name;
+        address surveyowner;
         bytes32[] options;
         uint[] results;
     }
 
-    address payable tokenOwner;
     mapping(address => Voter) public voters;
-    Proposal[] public proposals;
-    Survey[] public surveys;
+    mapping(uint => Survey) public surveys;
+    mapping(uint => Proposal) public proposals;
+
+    //Proposal[] public proposals;
+    //Survey[] public surveys;
+    //Voter[] public voters;
 
     function delegateVoteTo(address memberaddr, uint projectid) public {
         Voter storage sender = voters[msg.sender];
@@ -63,7 +72,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         Voter storage sender = voters[msg.sender];
         sender.voted = true;
         sender.votedProposal = projectid;
-        proposals[projectid].voteCount += sender.weight;
+        //proposals[projectid].voteCount += sender.weight;
     }
 
     function voteForProjectPayment()public{
@@ -75,18 +84,28 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint votedeadline,
         uint[] memory paymentamounts,
         uint[] memory payschedule
-        ) public {
+        ) public returns (uint projectid){
         bytes memory nameinbytes = bytes(ipfshash);
-        Proposal memory newProposal = Proposal(nameinbytes, 0, false, false);
-        proposals.push(newProposal);
+        Proposal memory newProposal = Proposal(nameinbytes, msg.sender, 0, false, false);
+        //proposals.push(newProposal);
     }
 
-    function submitSurvey()public{
-        // TODO: Implement function
+    function submitSurvey(
+        string memory ipfshash,
+        uint surveydeadline,
+        uint numchoices,
+        uint atmostchoice
+        ) public returns (uint surveyid){
+        bytes memory nameinbytes = bytes(ipfshash);
+        //Survey memory newSurvey = Survey(nameinbytes, msg.sender, [], []);
+        //surveys.push(newSurvey);
     }
 
-    function takeSurvey()public{
-        // TODO: Implement function
+    function takeSurvey(uint surveyid, uint[] memory choices)public{
+        Survey storage s = surveys[surveyid];
+        for(uint i = 0; i < choices.length; i++){
+            s.results[i]++;
+        }
     }
 
     function reserveProjectGrant()public{
@@ -97,32 +116,53 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         // TODO: Implement function
     }
 
-    function getSurveyResults()public{
-        // TODO: Implement function
+    function getSurveyResults(uint surveyid) public view returns(uint numtaken, uint[] memory results){
+        Survey storage s = surveys[surveyid];
+        numtaken = 1;
+        results = s.results;
     }
 
-    function getSurveyInfo()public{
-        // TODO: Implement function
+    function getSurveyInfo(uint surveyid)public view returns(
+        string memory ipfshash,
+        uint surveydeadline,
+        uint numchoices,
+        uint atmostchoice
+    ){
+        Survey storage s = surveys[surveyid];
+        //ipfshash = s.name;
+        //surveydeadline = s.surveydeadline;
+        //numchoices = s.numchoices;
+        //atmostchoice = s.atmostchoice;
     }
 
     function getSurveyOwner(uint surveyid) public view returns(address surveyowner) {
-        
+        Survey storage survey = surveys[surveyid];
+        surveyowner = survey.surveyowner;
     }
 
-    function getIsProjectFunded()public{
-        // TODO: Implement function
+    function getIsProjectFunded(uint projectid)public view returns(bool funded){
+        Proposal storage project = proposals[projectid];
+        funded = project.isFunded;
     }
 
-    function getProjectNextPayment()public{
-        // TODO: Implement function
+    function getProjectNextPayment(uint projectid)public view returns(uint next){
+        next = proposals[projectid].voteCount;
     }
 
-    function getProjectOwner()public{
-        // TODO: Implement function
+    function getProjectOwner(uint projectid)public view returns(address projectowner){
+        Proposal storage p = proposals[projectid];
+        projectowner = p.owner;
     }
 
-    function getProjectInfo()public{
-        // TODO: Implement function
+    function getProjectInfo(uint activityid)public view returns(
+        string memory ipfshash,
+        uint votedeadline,
+        uint[] memory paymentamounts,
+        uint[] memory payschedule){
+            ipfshash = proposals[activityid].name;
+            votedeadline = proposals[activityid].votedeadline;
+            paymentamounts = proposals[activityid].paymentamounts;
+            payschedule = proposals[activityid].payschedule;
     }
 
     function getNoOfProjectProposals() public view returns (uint numofproposals){
@@ -138,8 +178,9 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         numfunded = total_funded;
     }
 
-    function getEtherReceivedByProject()public{
-        // TODO: Implement function
+    function getEtherReceivedByProject(uint projectid) public view returns(uint amount){
+        Proposal storage p = proposals[projectid];
+        //amount = p.geteth
     }
 
     function getNoOfSurveys() public view returns (uint numsurveys) {
