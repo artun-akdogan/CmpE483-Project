@@ -11,7 +11,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
 
     constructor(uint tokensupply) {
         tokenOwner = payable(msg.sender);
-        _mint(msg.sender, tokensupply * 10**18);
+        _mint(msg.sender, tokensupply);
     }
 
     struct Voter {
@@ -27,6 +27,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint votedeadline;
         uint[] paymentamounts; // Neden array
         uint[] payschedule; // Ne ise yarıyor
+        mapping(address => bool) votes;
         uint voteCount;
         bool isWon;
         bool isFunded;
@@ -59,7 +60,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         sender.delegate = memberaddr;
 
         Voter storage delegate = voters[memberaddr];
-
+        
         delegate.weight += sender.weight;
     }
 
@@ -78,6 +79,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         sender.voted = true;
         sender.votedProposal = projectid;
         proposals[projectid].voteCount += sender.weight;
+        proposals[projectid].votes[msg.sender]=choice;
     }
 
     function voteForProjectPayment()public{
@@ -91,9 +93,18 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint[] memory payschedule
         ) public returns (uint projectid){ // Nerede donuyor?
         //bytes memory nameinbytes = bytes(ipfshash);
-        Proposal memory newProposal = Proposal(ipfshash, msg.sender, votedeadline, paymentamounts, payschedule, 0, false, false);
         projectid = proposals.length;
-        proposals.push(newProposal);
+        Proposal storage newProposal = proposals.push();
+        newProposal.name = ipfshash;
+        newProposal.owner = msg.sender;
+        newProposal.votedeadline = votedeadline;
+        newProposal.paymentamounts = paymentamounts;
+        newProposal.payschedule = payschedule;
+        newProposal.voteCount = 0;
+        newProposal.isWon = false;
+        newProposal.isFunded = false;
+        // Proposal(ipfshash, msg.sender, votedeadline, paymentamounts, payschedule, new Votes[](0), 0, false, false);
+        
     }
 
     function submitSurvey( // Payment yok
