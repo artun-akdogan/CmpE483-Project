@@ -7,15 +7,21 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 //import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract MyGovToken is ERC20("MyGov Token", "MGT"){
-    address payable tokenOwner;
+    address tokenOwner;
+    address payable tokenOwnerEth;
+    mapping(address => uint256) balances;
+    mapping(address => bool) faucetUsage;
 
     constructor(uint tokensupply) {
-        tokenOwner = payable(msg.sender);
-        _mint(msg.sender, tokensupply * 10**18);
+        tokenOwnerEth = payable(msg.sender);
+
+        tokenOwner = msg.sender;
+        balances[tokenOwner] = tokensupply;
+        _mint(tokenOwner, tokensupply);
     }
 
     struct Voter {
-        uint weight;
+        uint weight; // Burası ne ise yarıyor
         bool voted;
         address delegate;
         uint votedProposal;
@@ -25,8 +31,9 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         string name;
         address owner;
         uint votedeadline;
-        uint[] paymentamounts;
-        uint[] payschedule;
+        uint[] paymentamounts; // Neden array
+        uint[] payschedule; // Ne ise yarıyor
+        mapping(address => bool) votes;
         uint voteCount;
         bool isWon;
         bool isFunded;
@@ -35,19 +42,39 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     struct Survey {
         string name;
         address surveyowner;
+        uint surveydeadline;
+        uint atmostchoice;
+        uint numtaken;
         bytes32[] options;
-        uint[] results;
+        uint[] results; // Options ile birlestirebilir miyiz?
     }
 
     mapping(address => Voter) public voters;
-    mapping(uint => Survey) public surveys;
-    mapping(uint => Proposal) public proposals;
+    //mapping(uint => Survey) public surveys;
+    //mapping(uint => Proposal) public proposals;
 
-    //Proposal[] public proposals;
-    //Survey[] public surveys;
+    Proposal[] public proposals;
+    Survey[] public surveys;
     //Voter[] public voters;
 
-    function delegateVoteTo(address memberaddr, uint projectid) public {
+    function transferToken(address dest, uint token)private{
+        require(balances[msg.sender]>=token, "Don't have enough token");
+        balances[msg.sender] -= token;
+        balances[dest] += token;
+    }
+    function transferEth(address payable dest, uint eth)private{
+        (bool success, ) = dest.call{value: eth}("");
+        require(success, "Failed to send Ether");
+    }
+
+    function faucet()public{
+        require(!faucetUsage[msg.sender], "Faucet already used!");
+        balances[tokenOwner] -= 1;
+        balances[msg.sender] += 1;
+        faucetUsage[msg.sender] = true;
+    }
+
+    function delegateVoteTo(address memberaddr, uint projectid) public { // Bu fonksiyon ne yapıyor?
         Voter storage sender = voters[msg.sender];
         require(!sender.voted, "You already voted!");
         require(memberaddr != msg.sender, "Self delegation not allowed!");
@@ -56,69 +83,84 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         sender.delegate = memberaddr;
 
         Voter storage delegate = voters[memberaddr];
-
+        
         delegate.weight += sender.weight;
     }
 
     function donateEther() external payable {
-        tokenOwner.transfer(123);
+        transferEth(tokenOwnerEth, msg.value);
     }
 
     function donateMyGovToken(uint amount) public {
-        transfer(tokenOwner, amount);
+        transferToken(tokenOwner, amount);
     }
 
     function voteForProjectProposal(uint projectid, bool choice) public {
         Voter storage sender = voters[msg.sender];
         sender.voted = true;
         sender.votedProposal = projectid;
-        //proposals[projectid].voteCount += sender.weight;
+        proposals[projectid].voteCount += sender.weight;
+        proposals[projectid].votes[msg.sender]=choice;
     }
 
     function voteForProjectPayment()public{
         // TODO: Implement function
     }
 
-    function submitProjectProposal(
+    function submitProjectProposal( // Payment yok
         string memory ipfshash,
         uint votedeadline,
         uint[] memory paymentamounts,
         uint[] memory payschedule
-        ) public returns (uint projectid){
-        bytes memory nameinbytes = bytes(ipfshash);
-        Proposal memory newProposal = Proposal(nameinbytes, msg.sender, 0, false, false);
-        //proposals.push(newProposal);
+        ) public returns (uint projectid){ // Nerede donuyor?
+        //bytes memory nameinbytes = bytes(ipfshash);
+        projectid = proposals.length;
+        Proposal storage newProposal = proposals.push();
+        newProposal.name = ipfshash;
+        newProposal.owner = msg.sender;
+        newProposal.votedeadline = votedeadline;
+        newProposal.paymentamounts = paymentamounts;
+        newProposal.payschedule = payschedule;
+        newProposal.voteCount = 0;
+        newProposal.isWon = false;
+        newProposal.isFunded = false;
+        // Proposal(ipfshash, msg.sender, votedeadline, paymentamounts, payschedule, new Votes[](0), 0, false, false);
+        
     }
 
-    function submitSurvey(
+    function submitSurvey( // Payment yok
         string memory ipfshash,
         uint surveydeadline,
         uint numchoices,
         uint atmostchoice
         ) public returns (uint surveyid){
-        bytes memory nameinbytes = bytes(ipfshash);
-        //Survey memory newSurvey = Survey(nameinbytes, msg.sender, [], []);
-        //surveys.push(newSurvey);
+        // bytes memory nameinbytes = bytes(ipfshash);
+        Survey memory newSurvey = Survey(ipfshash, msg.sender, surveydeadline, atmostchoice, 0, new bytes32[](numchoices), new uint[](numchoices));
+        surveys.push(newSurvey);
     }
 
     function takeSurvey(uint surveyid, uint[] memory choices)public{
         Survey storage s = surveys[surveyid];
+        s.numtaken++;
+        require(s.results.length==choices.length, "Choices length mismatch");
         for(uint i = 0; i < choices.length; i++){
-            s.results[i]++;
+            s.results[i]+=choices[i];
         }
     }
 
-    function reserveProjectGrant()public{
+    function reserveProjectGrant(uint projectid)public{
         // TODO: Implement function
+        // Community 1/10 u evet demeli
+        // Deadline gecmemis olmali
     }
 
-    function withdrawProjectPayment()public{
+    function withdrawProjectPayment(uint projectid)public{
         // TODO: Implement function
     }
 
     function getSurveyResults(uint surveyid) public view returns(uint numtaken, uint[] memory results){
         Survey storage s = surveys[surveyid];
-        numtaken = 1;
+        numtaken = s.numtaken;
         results = s.results;
     }
 
@@ -129,10 +171,10 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint atmostchoice
     ){
         Survey storage s = surveys[surveyid];
-        //ipfshash = s.name;
-        //surveydeadline = s.surveydeadline;
-        //numchoices = s.numchoices;
-        //atmostchoice = s.atmostchoice;
+        ipfshash = s.name;
+        surveydeadline = s.surveydeadline;
+        numchoices = s.options.length;
+        atmostchoice = s.atmostchoice;
     }
 
     function getSurveyOwner(uint surveyid) public view returns(address surveyowner) {
@@ -146,7 +188,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     }
 
     function getProjectNextPayment(uint projectid)public view returns(uint next){
-        next = proposals[projectid].voteCount;
+        next = proposals[projectid].voteCount; // Burası doğru mu?
     }
 
     function getProjectOwner(uint projectid)public view returns(address projectowner){
