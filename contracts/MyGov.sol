@@ -7,11 +7,17 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 //import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract MyGovToken is ERC20("MyGov Token", "MGT"){
-    address payable tokenOwner;
+    address tokenOwner;
+    address payable tokenOwnerEth;
+    mapping(address => uint256) balances;
+    mapping(address => bool) faucetUsage;
 
     constructor(uint tokensupply) {
-        tokenOwner = payable(msg.sender);
-        _mint(msg.sender, tokensupply);
+        tokenOwnerEth = payable(msg.sender);
+
+        tokenOwner = msg.sender;
+        balances[tokenOwner] = tokensupply;
+        _mint(tokenOwner, tokensupply);
     }
 
     struct Voter {
@@ -51,6 +57,23 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     Survey[] public surveys;
     //Voter[] public voters;
 
+    function transferToken(address dest, uint token)private{
+        require(balances[msg.sender]>=token, "Don't have enough token");
+        balances[msg.sender] -= token;
+        balances[dest] += token;
+    }
+    function transferEth(address payable dest, uint eth)private{
+        (bool success, ) = dest.call{value: eth}("");
+        require(success, "Failed to send Ether");
+    }
+
+    function faucet()public{
+        require(!faucetUsage[msg.sender], "Faucet already used!");
+        balances[tokenOwner] -= 1;
+        balances[msg.sender] += 1;
+        faucetUsage[msg.sender] = true;
+    }
+
     function delegateVoteTo(address memberaddr, uint projectid) public { // Bu fonksiyon ne yapıyor?
         Voter storage sender = voters[msg.sender];
         require(!sender.voted, "You already voted!");
@@ -65,13 +88,11 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     }
 
     function donateEther() external payable {
-        tokenOwner.transfer(123); // Ether gondermek için farklı bir yol olmalı
+        transferEth(tokenOwnerEth, msg.value);
     }
 
     function donateMyGovToken(uint amount) public {
-        if(transfer(tokenOwner, amount)){
-            revert();
-        }
+        transferToken(tokenOwner, amount);
     }
 
     function voteForProjectProposal(uint projectid, bool choice) public {
