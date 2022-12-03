@@ -35,6 +35,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint[] payschedule; // Ne ise yarıyor
         mapping(address => bool) votes;
         uint voteCount;
+        uint trueVotes;
         bool isWon;
         bool isFunded;
     }
@@ -57,7 +58,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     Survey[] public surveys;
     //Voter[] public voters;
 
-    function transferToken(address dest, uint token)private{
+    function transferToken(address dest, uint token)private{//başarılı olup olmadığını kontrol etmemiz
         require(balances[msg.sender]>=token, "Don't have enough token");
         balances[msg.sender] -= token;
         balances[dest] += token;
@@ -100,6 +101,9 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         sender.voted = true;
         sender.votedProposal = projectid;
         proposals[projectid].voteCount += sender.weight;
+        if(choice){
+            proposals[projectid].trueVotes++;
+        }
         proposals[projectid].votes[msg.sender]=choice;
     }
 
@@ -136,6 +140,10 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         ) public returns (uint surveyid){
         // bytes memory nameinbytes = bytes(ipfshash);
         Survey memory newSurvey = Survey(ipfshash, msg.sender, surveydeadline, atmostchoice, 0, new bytes32[](numchoices), new uint[](numchoices));
+        
+        emit transferEth(tokenOwnerEth, 40000000000000000); //weiye çevirmek gerekebilir ya da farklı bir yol bulmamız gerekiyor
+        emit transferToken(tokenOwner, 2); //işlemlerin gerçekleştiğini kontrol etmemiz gerekir
+        
         surveys.push(newSurvey);
     }
 
@@ -152,6 +160,13 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         // TODO: Implement function
         // Community 1/10 u evet demeli
         // Deadline gecmemis olmali
+        Proposal p = proposals[projectid];
+        require(p.votedeadline <= block.timestamp);
+
+        if(p.trueVotes > (p.voteCount / 10)){
+            p.isWon = true;
+        }
+        
     }
 
     function withdrawProjectPayment(uint projectid)public{
