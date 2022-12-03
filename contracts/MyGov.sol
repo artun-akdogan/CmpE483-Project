@@ -21,21 +21,16 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
 
     struct Voter {
         uint blockedUntil;
-        //uint weight; // Burası ne ise yarıyor
-        //bool voted; // voted kalkabilir.
-        // sender voted ayrıca project paymet için de tutulmalı??
         mapping(uint=>address[]) delegates;
         mapping(uint=>bool) alreadyDelegatedHisVote;
-        // delegate eden kişilerin adresine sahip olmalı
-        //uint votedProposal;
     }
 
     struct Proposal {
         string name;
         address owner;
         uint votedeadline;
-        uint[] paymentamounts; // Neden array
-        uint[] payschedule; // Ne ise yarıyor
+        uint[] paymentamounts;
+        uint[] payschedule;
         mapping(address => uint8) votes; // 0->not voted, 1->no, 2->yes
         uint voteCount;
         uint trueVotes;
@@ -55,18 +50,14 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint numtaken;
         mapping(address => bool) participated;
         bytes32[] options;
-        uint[] results; // Options ile birlestirebilir miyiz?
+        uint[] results;
     }
 
     mapping(address => Voter) public voters;
-    //mapping(uint => Survey) public surveys;
-    //mapping(uint => Proposal) public proposals;
-
     Proposal[] public proposals;
     Survey[] public surveys;
-    //Voter[] public voters;
 
-    function transferToken(address dest, uint token)private{//başarılı olup olmadığını kontrol etmemiz
+    function transferToken(address dest, uint token)private{
         require(balanceOf(msg.sender)>=token, "Higher token amount than account have");
         require(voters[msg.sender].blockedUntil <= block.timestamp || balanceOf(msg.sender)-1 >= token, "Vote delegated or used. Cannot reduce account token amount to zero.");
         require(transfer(dest, token), "Failed to send token!");
@@ -75,12 +66,13 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         (bool success, ) = dest.call{value: eth}("");
         require(success, "Failed to send Ether!");
     }
-
+/*
     // Malfunctioning
     function withdrawEth(address payable dest, uint eth) private {
+        require(msg.sender == tokenOwnerEth, "Only executable when get eth from the Contract Owner");
         transferEth(dest, eth);
     }
-
+*/
     function faucet()public{
         require(!faucetUsage[msg.sender], "Faucet already used!");
         require(supliedToken<maxSupply, "Supply limit reached!");
@@ -97,9 +89,6 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         require(!sender.alreadyDelegatedHisVote[projectid], "You already delegate your vote to someone for this project!");
         require(!receiver.alreadyDelegatedHisVote[projectid], "Target already delegated their vote!");
         require(memberaddr != msg.sender, "Self delegation not allowed!");
-        //sender.voted = true;
-        //sender.delegate = memberaddr;
-        //Voter storage delegate = voters[memberaddr];
         if(sender.blockedUntil < proposals[projectid].votedeadline){
             sender.blockedUntil = proposals[projectid].votedeadline;
         }
@@ -187,8 +176,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint votedeadline,
         uint[] memory paymentamounts,
         uint[] memory payschedule
-        ) public returns (uint projectid){ // Nerede donuyor?
-        //bytes memory nameinbytes = bytes(ipfshash);
+        ) public returns (uint projectid){
         require(paymentamounts.length==payschedule.length, "Payment amount and payment schedule arrays not equal!");
         transferToken(tokenOwner, 5);
         transferEth(tokenOwnerEth, 100*10**15);
@@ -212,9 +200,8 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint numchoices,
         uint atmostchoice
         ) public returns (uint surveyid){
-        // bytes memory nameinbytes = bytes(ipfshash);
-        transferEth(tokenOwnerEth, 40*10**15); //weiye çevirmek gerekebilir ya da farklı bir yol bulmamız gerekiyor
-        transferToken(tokenOwner, 2); //işlemlerin gerçekleştiğini kontrol etmemiz gerekir
+        transferEth(tokenOwnerEth, 40*10**15);
+        transferToken(tokenOwner, 2);
 
         surveyid = surveys.length;
         Survey storage newSurvey = surveys.push();
@@ -268,13 +255,15 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         }
     }
 
+    // Only owner can call this function!
     function withdrawProjectPayment(uint projectid)public{
         Proposal storage p = proposals[projectid];
-        require(msg.sender == p.owner, "Only project owner should call this method");
-        require(p.trueVotes*100 >= p.voteCount, "Less than 1 percent vote");
+        //require(msg.sender == p.owner, "Only project owner should call this method");
+        require(msg.sender == tokenOwner, "Only executable when get eth from the Contract Owner");
+        require(p.paymentTrueVotes*100 >= p.paymentVoteCount, "Less than 1 percent vote");
         require(p.isWon, "Project grant not reserved");
         uint nextPayment = getProjectNextPayment(projectid);
-        withdrawEth(payable(p.owner), nextPayment);
+        transferEth(payable(p.owner), nextPayment);
         p.isFunded = true;
         p.balanceOfProject+=nextPayment;
     }
