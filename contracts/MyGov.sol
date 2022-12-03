@@ -7,10 +7,15 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 //import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract MyGovToken is ERC20("MyGov Token", "MGT"){
+    // Token owner's addresses.
     address tokenOwner;
     address payable tokenOwnerEth;
+
+    // Supply limit variables.
     uint supliedToken = 0;
     uint maxSupply;
+
+    // Map to keep track of faucet usage.
     mapping(address => bool) faucetUsage;
 
     // Set max token supply and owner address (coinbase).
@@ -20,12 +25,14 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         tokenOwner = msg.sender;
     }
 
+    // Participant's structure.
     struct Voter {
         uint blockedUntil;
         mapping(uint=>address[]) delegates;
         mapping(uint=>bool) alreadyDelegatedHisVote;
     }
 
+    // Project proposal struct.
     struct Proposal {
         string name;
         address owner;
@@ -33,12 +40,12 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint[] paymentamounts;
         uint[] payschedule;
 
-        // Those values are used in voteForProjectProposal
+        // Those values are used in voteForProjectProposal.
         mapping(address => uint8) votes; // 0->not voted, 1->no, 2->yes
         uint voteCount; // All vote count
         uint trueVotes; // Vote count that approved
 
-        // Those values are used in voteForProjectPayment
+        // Those values are used in voteForProjectPayment.
         mapping(address => uint8) paymentVotes; // 0->not voted, 1->no, 2->yes
         uint paymentVoteCount; // All vote count
         uint paymentTrueVotes; // Vote count that approved
@@ -48,6 +55,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint balanceOfProject;
     }
 
+    // Survey struct.
     struct Survey {
         string name;
         address surveyowner;
@@ -59,6 +67,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint[] results;
     }
 
+    // Keep a list of different structures.
     mapping(address => Voter) public voters;
     Proposal[] public proposals;
     Survey[] public surveys;
