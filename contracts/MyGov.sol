@@ -20,6 +20,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     }
 
     struct Voter {
+        uint blockedUntil;
         //uint weight; // Burası ne ise yarıyor
         //bool voted; // voted kalkabilir.
         // sender voted ayrıca project paymet için de tutulmalı??
@@ -38,10 +39,12 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         mapping(address => uint8) votes; // 0->not voted, 1->no, 2->yes
         uint voteCount;
         uint trueVotes;
+        mapping(address => uint8) paymentVotes; // 0->not voted, 1->no, 2->yes
+        uint paymentVoteCount;
+        uint paymentTrueVotes;
         bool isWon;
         bool isFunded;
-
-        address balanceOfProject;
+        uint balanceOfProject;
     }
 
     struct Survey {
@@ -50,6 +53,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint surveydeadline;
         uint atmostchoice;
         uint numtaken;
+        mapping(address => bool) participated;
         bytes32[] options;
         uint[] results; // Options ile birlestirebilir miyiz?
     }
@@ -63,15 +67,18 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     //Voter[] public voters;
 
     function transferToken(address dest, uint token)private{//başarılı olup olmadığını kontrol etmemiz
-        transfer(dest, token);
-        /*
-        require(balances[msg.sender]>=token, "Don't have enough token");
-        balances[msg.sender] -= token;
-        balances[dest] += token;*/
+        require(balanceOf(msg.sender)>=token, "Higher token amount than account have");
+        require(voters[msg.sender].blockedUntil <= block.timestamp || balanceOf(msg.sender)-1 >= token, "Vote delegated or used. Cannot reduce account token amount to zero.");
+        require(transfer(dest, token), "Failed to send token!");
     }
     function transferEth(address payable dest, uint eth)private{
         (bool success, ) = dest.call{value: eth}("");
-        require(success, "Failed to send Ether");
+        require(success, "Failed to send Ether!");
+    }
+
+    // Malfunctioning
+    function withdrawEth(address payable dest, uint eth) private {
+        transferEth(dest, eth);
     }
 
     function faucet()public{
@@ -82,21 +89,25 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         faucetUsage[msg.sender] = true;
     }
 
-    function delegateVoteTo(address memberaddr, uint projectid) public { // Bu fonksiyon ne yapıyor?
+    function delegateVoteTo(address memberaddr, uint projectid) public {
         Voter storage sender = voters[msg.sender];
         Voter storage receiver = voters[memberaddr];
-        require(Proposal.votes[msg.sender]==0, "You already voted for this project!");
+        require(balanceOf(msg.sender)>=1, "Must have at least one token to delegate!");
+        require(proposals[projectid].votes[msg.sender]==0, "You already voted for this project!");
         require(!sender.alreadyDelegatedHisVote[projectid], "You already delegate your vote to someone for this project!");
         require(!receiver.alreadyDelegatedHisVote[projectid], "Target already delegated their vote!");
         require(memberaddr != msg.sender, "Self delegation not allowed!");
         //sender.voted = true;
         //sender.delegate = memberaddr;
         //Voter storage delegate = voters[memberaddr];
-        receiver.delegates[projectid].add(msg.sender);
+        if(sender.blockedUntil < proposals[projectid].votedeadline){
+            sender.blockedUntil = proposals[projectid].votedeadline;
+        }
+        receiver.delegates[projectid].push(msg.sender);
         sender.alreadyDelegatedHisVote[projectid] = true;
 
-        for( i = 0; i < sender.delegates[projectid].length; i++ ){
-            reveicer.delegates[projectid].push(sender.delegates[projectid][i]);
+        for(uint i = 0; i < sender.delegates[projectid].length; i++ ){
+            receiver.delegates[projectid].push(sender.delegates[projectid][i]);
         }
         sender.delegates[projectid] = new address[](0);
 
@@ -111,30 +122,63 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         transferToken(tokenOwner, amount);
     }
 
-    function tokenBalance() returns(uint balance){
+    function tokenBalance() public returns(uint balance){
         balance = balanceOf(msg.sender);
     }
 
     function voteForProjectProposal(uint projectid, bool choice) public {
-        //Voter storage sender = voters[msg.sender];
-        //sender.votedProposal = projectid;
-        //proposals[projectid].voteCount += sender.weight;
-        //proposals[projectid].votes[msg.sender]=choice;
-
+        require(balanceOf(msg.sender)>=1, "Must have at least one token to vote!");
+        require(proposals[projectid].votes[msg.sender]==0, "Already voted for project proposal");
         //Members who voted or delegated vote cannot reduce their MyGov balance to zero until the voting deadlines
 
+        // Member Control should be written!
         Voter storage sender = voters[msg.sender];
-        proposals[projectid].votes[msg.sender]=choice;
-        for(uint i = 0; i < sender.delegates.length; i++){
-            proposals[projectid].votes[sender.delegates[i]]=choice;
+        if(sender.blockedUntil < proposals[projectid].votedeadline){
+            sender.blockedUntil = proposals[projectid].votedeadline;
+        }
+        proposals[projectid].voteCount++;
+        if(choice){
+            proposals[projectid].trueVotes++;
+            proposals[projectid].votes[msg.sender]=2;
+        }else{
+            proposals[projectid].votes[msg.sender]=1;
+        }
+        for(uint i = 0; i < sender.delegates[projectid].length; i++){
+            proposals[projectid].voteCount++;
+            if(choice){
+                proposals[projectid].trueVotes++;
+                proposals[projectid].votes[sender.delegates[projectid][i]]=2;
+            }else{
+                proposals[projectid].votes[sender.delegates[projectid][i]]=1;
+            }
         }
     }
 
     function voteForProjectPayment(uint projectid, bool choice)public{
+        require(balanceOf(msg.sender)>=1, "Must have at least one token to vote!");
+        require(proposals[projectid].votes[msg.sender]==0, "Already voted for project proposal");
+        //Members who voted or delegated vote cannot reduce their MyGov balance to zero until the voting deadlines
+
+        // Member Control should be written!
         Voter storage sender = voters[msg.sender];
-        proposals[projectid].votes[msg.sender]=choice;
-        for(uint i = 0; i < sender.delegates.length; i++){
-            proposals[projectid].votes[sender.delegates[i]]=choice;
+        if(sender.blockedUntil < proposals[projectid].votedeadline){
+            sender.blockedUntil = proposals[projectid].votedeadline;
+        }
+        proposals[projectid].paymentVoteCount++;
+        if(choice){
+            proposals[projectid].paymentTrueVotes++;
+            proposals[projectid].paymentVotes[msg.sender]=2;
+        }else{
+            proposals[projectid].paymentVotes[msg.sender]=1;
+        }
+        for(uint i = 0; i < sender.delegates[projectid].length; i++){
+            proposals[projectid].paymentVoteCount++;
+            if(choice){
+                proposals[projectid].paymentTrueVotes++;
+                proposals[projectid].paymentVotes[sender.delegates[projectid][i]]=2;
+            }else{
+                proposals[projectid].paymentVotes[sender.delegates[projectid][i]]=1;
+            }
         }
     }
 
@@ -145,8 +189,9 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint[] memory payschedule
         ) public returns (uint projectid){ // Nerede donuyor?
         //bytes memory nameinbytes = bytes(ipfshash);
+        require(paymentamounts.length==payschedule.length, "Payment amount and payment schedule arrays not equal!");
         transferToken(tokenOwner, 5);
-        transferEth(tokenOwner, 100*10**15);
+        transferEth(tokenOwnerEth, 100*10**15);
         projectid = proposals.length;
         Proposal storage newProposal = proposals.push();
         newProposal.name = ipfshash;
@@ -171,14 +216,28 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         transferEth(tokenOwnerEth, 40*10**15); //weiye çevirmek gerekebilir ya da farklı bir yol bulmamız gerekiyor
         transferToken(tokenOwner, 2); //işlemlerin gerçekleştiğini kontrol etmemiz gerekir
 
-        Survey memory newSurvey = Survey(ipfshash, msg.sender, surveydeadline, atmostchoice, 0, new bytes32[](numchoices), new uint[](numchoices));
-        surveys.push(newSurvey);
+        surveyid = surveys.length;
+        Survey storage newSurvey = surveys.push();
+        newSurvey.name = ipfshash;
+        newSurvey.surveyowner = msg.sender;
+        newSurvey.surveydeadline = surveydeadline;
+        newSurvey.atmostchoice = atmostchoice;
+        newSurvey.numtaken = 0;
+        newSurvey.options = new bytes32[](numchoices);
+        newSurvey.results = new uint[](numchoices);
+        //Survey storage newSurvey = Survey(ipfshash, msg.sender, surveydeadline, atmostchoice, 0, new bytes32[](numchoices), new uint[](numchoices));
+        //surveys.push(newSurvey);
     }
 
+    // options[] = {a, b, c}
+    // results[] = {2, 4, 3}
+    // choices[] = {0, 1, 2}
     function takeSurvey(uint surveyid, uint[] memory choices)public{
         Survey storage s = surveys[surveyid];
-        s.numtaken++;
+        require(!s.participated[msg.sender], "Already participated!");
         require(s.results.length==choices.length, "Choices length mismatch");
+        s.numtaken++;
+        s.participated[msg.sender]=true;
         for(uint i = 0; i < choices.length; i++){
             s.results[i]+=choices[i];
         }
@@ -187,8 +246,20 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     function reserveProjectGrant(uint projectid)public{
         // Community 1/10 u evet demeli
         // Deadline gecmemis olmali
-        Proposal p = proposals[projectid];
-        require(p.votedeadline <= block.timestamp);
+        Proposal storage p = proposals[projectid];
+        require(p.votedeadline <= block.timestamp, "Vote deadline is exceeded!");
+        require(msg.sender == p.owner, "Only project owner should call this method");
+        
+        uint current_time_index = 0;
+        for(uint i = 0; i < p.payschedule.length; i++){
+            if(block.timestamp > p.payschedule[i]){
+                current_time_index = i;
+            }
+        }    
+        
+        require(address(tokenOwnerEth).balance >= p.paymentamounts[current_time_index], 
+            "There is not enough eth in the contract for current payment schedule!");
+            
         if(p.trueVotes*10 > p.voteCount){
             p.isWon = true;
         }
@@ -198,13 +269,14 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     }
 
     function withdrawProjectPayment(uint projectid)public{
-        Proposal p = proposals[projectid];
-        if(p.trueVotes*100 > p.voteCount){
-            p.isFunded = true;
-        }
-        else {
-            p.isFunded = false;
-        }
+        Proposal storage p = proposals[projectid];
+        require(msg.sender == p.owner, "Only project owner should call this method");
+        require(p.trueVotes*100 >= p.voteCount, "Less than 1 percent vote");
+        require(p.isWon, "Project grant not reserved");
+        uint nextPayment = getProjectNextPayment(projectid);
+        withdrawEth(payable(p.owner), nextPayment);
+        p.isFunded = true;
+        p.balanceOfProject+=nextPayment;
     }
 
     function getSurveyResults(uint surveyid) public view returns(uint numtaken, uint[] memory results){
@@ -236,9 +308,18 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         funded = project.isFunded;
     }
 
+
+    // Project Payment Schedule = [now, tomorrow, 3 days later]
+    // Project Payment Amount =   [10 eth, 15 eth, 20 eth]
     function getProjectNextPayment(uint projectid)public view returns(uint next){
-        Proposal p = proposals[projectid]
-        next = p.payschedule[0]; // Burası doğru mu?
+        Proposal storage p = proposals[projectid];
+        uint current_time_index = 0;
+        for(uint i = 0; i < p.payschedule.length; i++){
+            if(block.timestamp > p.payschedule[i]){
+                current_time_index = i;
+            }
+        }    
+        next = p.paymentamounts[current_time_index]; // Parayı mı dönecek zamanı mı?
     }
 
     function getProjectOwner(uint projectid)public view returns(address projectowner){
@@ -272,7 +353,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
 
     function getEtherReceivedByProject(uint projectid) public view returns(uint amount){
         Proposal storage p = proposals[projectid];
-        amount = balanceOf(p.balanceOfProject);
+        amount = p.balanceOfProject;
         //amount = p.geteth
     }
 
