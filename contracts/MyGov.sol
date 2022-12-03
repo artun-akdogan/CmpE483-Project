@@ -9,22 +9,22 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract MyGovToken is ERC20("MyGov Token", "MGT"){
     address tokenOwner;
     address payable tokenOwnerEth;
-    mapping(address => uint256) balances;
+    uint supliedToken = 0;
+    uint maxSupply;
     mapping(address => bool) faucetUsage;
 
     constructor(uint tokensupply) {
+        maxSupply=tokensupply;
         tokenOwnerEth = payable(msg.sender);
-
         tokenOwner = msg.sender;
-        balances[tokenOwner] = tokensupply;
-        _mint(tokenOwner, tokensupply);
     }
 
     struct Voter {
-        uint weight; // Burası ne ise yarıyor
+        //uint weight; // Burası ne ise yarıyor
         //bool voted; // voted kalkabilir.
         // sender voted ayrıca project paymet için de tutulmalı??
-        address[] delegates;
+        mapping(uint=>address[]) delegates;
+        mapping(uint=>bool) alreadyDelegatedHisVote;
         // delegate eden kişilerin adresine sahip olmalı
         //uint votedProposal;
     }
@@ -35,11 +35,13 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint votedeadline;
         uint[] paymentamounts; // Neden array
         uint[] payschedule; // Ne ise yarıyor
-        mapping(address => bool) votes;
+        mapping(address => uint8) votes; // 0->not voted, 1->no, 2->yes
         uint voteCount;
         uint trueVotes;
         bool isWon;
         bool isFunded;
+
+        address balanceOfProject;
     }
 
     struct Survey {
@@ -61,7 +63,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     //Voter[] public voters;
 
     function transferToken(address dest, uint token)private{//başarılı olup olmadığını kontrol etmemiz
-        transferFrom(msg.sender, dest, token);
+        transfer(dest, token);
         /*
         require(balances[msg.sender]>=token, "Don't have enough token");
         balances[msg.sender] -= token;
@@ -74,21 +76,31 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
 
     function faucet()public{
         require(!faucetUsage[msg.sender], "Faucet already used!");
-        transferFrom(tokenOwner, msg.sender, token);
+        require(supliedToken<maxSupply, "Supply limit reached!");
+        _mint(msg.sender, 1);
+        supliedToken++;
         faucetUsage[msg.sender] = true;
     }
 
     function delegateVoteTo(address memberaddr, uint projectid) public { // Bu fonksiyon ne yapıyor?
         Voter storage sender = voters[msg.sender];
-        require(!sender.voted, "You already voted!");
+        Voter storage receiver = voters[memberaddr];
+        require(Proposal.votes[msg.sender]==0, "You already voted for this project!");
+        require(!sender.alreadyDelegatedHisVote[projectid], "You already delegate your vote to someone for this project!");
+        require(!receiver.alreadyDelegatedHisVote[projectid], "Target already delegated their vote!");
         require(memberaddr != msg.sender, "Self delegation not allowed!");
+        //sender.voted = true;
+        //sender.delegate = memberaddr;
+        //Voter storage delegate = voters[memberaddr];
+        receiver.delegates[projectid].add(msg.sender);
+        sender.alreadyDelegatedHisVote[projectid] = true;
 
-        sender.voted = true;
-        sender.delegate = memberaddr;
+        for( i = 0; i < sender.delegates[projectid].length; i++ ){
+            reveicer.delegates[projectid].push(sender.delegates[projectid][i]);
+        }
+        sender.delegates[projectid] = new address[](0);
 
-        Voter storage delegate = voters[memberaddr];
-        
-        delegate.weight += sender.weight;
+        //Members who voted or delegated vote cannot reduce their MyGov balance to zero until the voting deadlines
     }
 
     function donateEther() external payable {
@@ -99,13 +111,20 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         transferToken(tokenOwner, amount);
     }
 
+    function tokenBalance() returns(uint balance){
+        balance = balanceOf(msg.sender);
+    }
+
     function voteForProjectProposal(uint projectid, bool choice) public {
         //Voter storage sender = voters[msg.sender];
         //sender.votedProposal = projectid;
         //proposals[projectid].voteCount += sender.weight;
         //proposals[projectid].votes[msg.sender]=choice;
 
+        //Members who voted or delegated vote cannot reduce their MyGov balance to zero until the voting deadlines
+
         Voter storage sender = voters[msg.sender];
+        proposals[projectid].votes[msg.sender]=choice;
         for(uint i = 0; i < sender.delegates.length; i++){
             proposals[projectid].votes[sender.delegates[i]]=choice;
         }
@@ -113,6 +132,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
 
     function voteForProjectPayment(uint projectid, bool choice)public{
         Voter storage sender = voters[msg.sender];
+        proposals[projectid].votes[msg.sender]=choice;
         for(uint i = 0; i < sender.delegates.length; i++){
             proposals[projectid].votes[sender.delegates[i]]=choice;
         }
@@ -125,6 +145,8 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint[] memory payschedule
         ) public returns (uint projectid){ // Nerede donuyor?
         //bytes memory nameinbytes = bytes(ipfshash);
+        transferToken(tokenOwner, 5);
+        transferEth(tokenOwner, 100*10**15);
         projectid = proposals.length;
         Proposal storage newProposal = proposals.push();
         newProposal.name = ipfshash;
@@ -146,11 +168,10 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint atmostchoice
         ) public returns (uint surveyid){
         // bytes memory nameinbytes = bytes(ipfshash);
+        transferEth(tokenOwnerEth, 40*10**15); //weiye çevirmek gerekebilir ya da farklı bir yol bulmamız gerekiyor
+        transferToken(tokenOwner, 2); //işlemlerin gerçekleştiğini kontrol etmemiz gerekir
+
         Survey memory newSurvey = Survey(ipfshash, msg.sender, surveydeadline, atmostchoice, 0, new bytes32[](numchoices), new uint[](numchoices));
-        
-        emit transferEth(tokenOwnerEth, 40000000000000000); //weiye çevirmek gerekebilir ya da farklı bir yol bulmamız gerekiyor
-        emit transferToken(tokenOwner, 2); //işlemlerin gerçekleştiğini kontrol etmemiz gerekir
-        
         surveys.push(newSurvey);
     }
 
@@ -164,26 +185,25 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     }
 
     function reserveProjectGrant(uint projectid)public{
-        // TODO: Implement function
         // Community 1/10 u evet demeli
         // Deadline gecmemis olmali
         Proposal p = proposals[projectid];
         require(p.votedeadline <= block.timestamp);
-
-        if(proposals[projectid].trueVotes*10 > proposals[projectid].voteCount){
-            proposals[projectid].isWon = true;
+        if(p.trueVotes*10 > p.voteCount){
+            p.isWon = true;
         }
         else {
-            proposals[projectid].isWon = false;
+            p.isWon = false;
         }
     }
 
     function withdrawProjectPayment(uint projectid)public{
-        if(proposals[projectid].trueVotes*100 > proposals[projectid].voteCount){
-            proposals[projectid].isFunded = true;
+        Proposal p = proposals[projectid];
+        if(p.trueVotes*100 > p.voteCount){
+            p.isFunded = true;
         }
         else {
-            proposals[projectid].isFunded = false;
+            p.isFunded = false;
         }
     }
 
@@ -217,7 +237,8 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     }
 
     function getProjectNextPayment(uint projectid)public view returns(uint next){
-        next = proposals[projectid].voteCount; // Burası doğru mu?
+        Proposal p = proposals[projectid]
+        next = p.payschedule[0]; // Burası doğru mu?
     }
 
     function getProjectOwner(uint projectid)public view returns(address projectowner){
@@ -251,6 +272,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
 
     function getEtherReceivedByProject(uint projectid) public view returns(uint amount){
         Proposal storage p = proposals[projectid];
+        amount = balanceOf(p.balanceOfProject);
         //amount = p.geteth
     }
 
