@@ -9,8 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MyGovToken is ERC20("MyGov Token", "MGT") {
     // Token owner's addresses.
-    address tokenOwner;
-    address payable tokenOwnerEth;
+    address payable tokenOwner;
 
     // Supply limit variables.
     uint256 supliedToken = 0;
@@ -22,8 +21,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT") {
     // Set max token supply and owner address (coinbase).
     constructor(uint256 tokensupply) {
         maxSupply = tokensupply;
-        tokenOwnerEth = payable(msg.sender);
-        tokenOwner = msg.sender;
+        tokenOwner = payable(msg.sender);
         _mint(msg.sender, tokensupply);
     }
 
@@ -68,7 +66,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT") {
 
     // Keep a list of different structures.
     mapping(address => Voter) public voters;
-    Proposal[] public proposals;
+    Proposal[] private proposals;
     Survey[] public surveys;
 
     // Check for tests and transfer specified amounts (token) of token to destination address (dest).
@@ -91,6 +89,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT") {
     // Check for tests and transfer specified amounts (eth) of etherem to destination address (dest) in wei.
     function transferEth(address payable dest, uint256 eth) private {
         // Transfer ethereum to destined address as wei. Revert on failure.
+
         (bool success, ) = dest.call{value: eth}("");
         require(success, "Failed to send Ether!");
 
@@ -166,7 +165,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT") {
 
     // Send ethereum to coinbase account.
     function donateEther() external payable {
-        transferEth(tokenOwnerEth, msg.value);
+        transferEth(tokenOwner, msg.value);
     }
 
     // Send token to coinbase account.
@@ -280,19 +279,24 @@ contract MyGovToken is ERC20("MyGov Token", "MGT") {
         );
         // Pay to submit project proposal
         transferToken(tokenOwner, 1);
-        transferEth(tokenOwnerEth, 100 * 10**15);
+        //transferEth(tokenOwner, 10);
         // Set and initialize required fields
-        projectid = proposals.length;
         Proposal storage newProposal = proposals.push();
+
         newProposal.name = ipfshash;
         newProposal.owner = msg.sender;
         newProposal.votedeadline = votedeadline;
         newProposal.paymentamounts = paymentamounts;
         newProposal.payschedule = payschedule;
         newProposal.voteCount = 0;
+        newProposal.trueVotes = 0;
         newProposal.isWon = false;
         newProposal.isFunded = false;
-        // Proposal(ipfshash, msg.sender, votedeadline, paymentamounts, payschedule, new Votes[](0), 0, false, false);
+        newProposal.paymentVoteCount = 0; // All vote count
+        newProposal.paymentTrueVotes = 0; // Vote count that approved
+        newProposal.balanceOfProject = 0;
+
+        projectid = proposals.length;
     }
 
     // Send survey
@@ -303,7 +307,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT") {
         uint256 atmostchoice
     ) public returns (uint256 surveyid) {
         // Pay to submit project proposal
-        transferEth(tokenOwnerEth, 40 * 10**15);
+        transferEth(tokenOwner, 40 * 10**15);
         transferToken(tokenOwner, 2);
         // Set and initialize required fields
         surveyid = surveys.length;
@@ -364,8 +368,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT") {
 
         // Check if coinbase account has enough balance in ethereum.
         require(
-            address(tokenOwnerEth).balance >=
-                p.paymentamounts[current_time_index],
+            address(tokenOwner).balance >= p.paymentamounts[current_time_index],
             "There is not enough eth in the contract for current payment schedule!"
         );
 
