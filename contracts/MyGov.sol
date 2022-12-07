@@ -75,7 +75,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     Survey[] public surveys;
 
     // Check for tests and transfer specified amounts (token) of token to destination address (dest).
-    function transferToken(address dest, uint token)private{
+    function transferToken(address dest, uint token)public{
         // Don't allow token transfer more than sender accounts balance
         require(balanceOf(msg.sender)>=token, "Higher token amount than account have");
         // If account has voted or delegated vote, don't allow zero balance until all voted project's deadline has passed.
@@ -85,7 +85,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     }
 
     // Check for tests and transfer specified amounts (eth) of etherem to destination address (dest) in wei.
-    function transferEth(address payable dest, uint eth)private{
+    function transferEth(address payable dest, uint eth)public{
         // Transfer ethereum to destined address as wei. Revert on failure.
         (bool success, ) = dest.call{value: eth}("");
         require(success, "Failed to send Ether!");
