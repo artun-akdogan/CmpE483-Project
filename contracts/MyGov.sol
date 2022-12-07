@@ -21,7 +21,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     // Set max token supply and owner address (coinbase).
     constructor(uint tokensupply) {
         maxSupply=tokensupply;
-        tokenOwnerEth = payable(address(this));
+        tokenOwnerEth = payable(msg.sender);
         tokenOwner = address(this);
         _mint(address(this), tokensupply);
         approve(address(this), tokensupply);
@@ -85,7 +85,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     }
 
     // Check for tests and transfer specified amounts (eth) of etherem to destination address (dest) in wei.
-    function transferEth(address payable dest, uint eth)public{
+    function transferEth(address payable dest, uint eth) public payable {
         // Transfer ethereum to destined address as wei. Revert on failure.
         (bool success, ) = dest.call{value: eth}("");
         require(success, "Failed to send Ether!");
@@ -228,7 +228,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint votedeadline,
         uint[] memory paymentamounts,
         uint[] memory payschedule
-        ) public returns (uint projectid){
+        ) public payable returns (uint projectid){
         // Payment amount and payschedule should be equal in size.
         require(paymentamounts.length==payschedule.length, "Payment amount and payment schedule arrays not equal!");
         require(balanceOf(msg.sender) >= 5, "Token balance is not enough");
@@ -257,7 +257,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint surveydeadline,
         uint numchoices,
         uint atmostchoice
-        ) public returns (uint surveyid){
+        ) public payable returns (uint surveyid){
         require(balanceOf(msg.sender) >= 2, "Token balance is not enough");
         require(address(msg.sender).balance >= 40 * 10**15,"ETH balance is not enough");
         // Pay to submit project proposal
