@@ -26,7 +26,7 @@ sendTokenFromOthers = (govToken, dest, _from, _to)=>{
         return new Promise(async(resolve, reject) => {
             //console.log(`From address: ${i + _from}`)
             await govToken.faucet({from: accounts[i + _from]})
-            await new Promise(r => setTimeout(r, 100));
+            await new Promise(r => setTimeout(r, 300));
             //console.log("test: ", i + _from, await myGov.tokenBalance.call({from: accounts[i + _from]}))
             await govToken.transferToken(accounts[dest], 1, {from: accounts[i + _from]})
             resolve()
@@ -119,6 +119,7 @@ contract('MyGov', () => {
         const numberOfProposalsAfter = await myGov.getNoOfProjectProposals()
 
         assert(numberOfProposalsAfter.toNumber() === numberOfProposalsBefore.toNumber() + 1)
+        console.log(`Current eth balance: ${web3.utils.fromWei(await web3.eth.getBalance(myGov.address), "ether")}`)
     })
 
     it('should submit survey correctly', async () => {
@@ -146,5 +147,6 @@ contract('MyGov', () => {
         const numberOfSurveysAfter = await myGov.getNoOfSurveys()
 
         assert(numberOfSurveysAfter.toNumber() === numberOfSurveysBefore.toNumber() + 1)
+        console.log(`Current eth balance: ${web3.utils.fromWei(await web3.eth.getBalance(myGov.address), "ether")}`)
     })
 })
