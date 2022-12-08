@@ -304,17 +304,15 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
             "There is not enough eth in the contract for current payment schedule!");
         
         require(!p.paid[current_time_index], "Scheduled fund already reserved!");
-        
-        // If community vote is at least 1/10, enable withdrawal.
-        if(p.trueVotes*10 > p.voteCount){
-            p.isWon = true;
-            balances[p.owner]+=p.paymentamounts[current_time_index];
-            reservedEth+=p.paymentamounts[current_time_index];
-            p.paid[current_time_index]=true;
+
+        if(p.isWon){
+            require(p.paymentTrueVotes*100 >= p.paymentVoteCount, "Less than 1 percent vote");
+        } else{
+            require(p.paymentTrueVotes*10 >= p.paymentVoteCount, "Less than 10 percent vote");
         }
-        else {
-            p.isWon = false;
-        }
+        balances[p.owner]+=p.paymentamounts[current_time_index];
+        reservedEth+=p.paymentamounts[current_time_index];
+        p.paid[current_time_index]=true;
     }
 
     // Only project owner can call this function!
@@ -322,8 +320,6 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     function withdrawProjectPayment(uint projectid)public{
         Proposal storage p = proposals[projectid];
         require(msg.sender == p.owner, "Only project owner should call this method");
-        // Withdrawal should be enabled and payment vote should be at less 1/100.
-        require(p.paymentTrueVotes*100 >= p.paymentVoteCount, "Less than 1 percent vote");
         require(p.isWon, "Project grant not reserved");
         require(balances[p.owner]>0, "No balance at contract");
         // Pay reserved value
@@ -333,7 +329,6 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         p.balanceOfProject+=balances[p.owner];
         balances[p.owner]=0;
         p.isFunded = true;
-        
     }
 
     // Return survey results.
