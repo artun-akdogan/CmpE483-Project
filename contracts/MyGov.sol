@@ -103,8 +103,6 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         require(!faucetUsage[msg.sender], "Faucet already used!");
         // Token creation should stop at specified supply limit.
         require(supliedToken<maxSupply, "Supply limit reached!");
-        // Create token and mark tracking variables.
-        require(1 <= balanceOf(tokenOwner));
 
         // Don't allow token transfer more than sender accounts balance
         require(balanceOf(address(this))>=1, "No tokens left on contract");
