@@ -7,22 +7,15 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 //import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 
 contract MyGovToken is ERC20("MyGov Token", "MGT"){
-    // Token owner's addresses.
-    address tokenOwner;
-    address payable tokenOwnerEth;
-
     // Supply limit variables.
-    uint supliedToken = 0;
-    uint maxSupply;
+    uint reservedEth=0;
+    mapping(address=>uint) balances;
 
     // Map to keep track of faucet usage.
     mapping(address => bool) faucetUsage;
 
     // Set max token supply and owner address (coinbase).
     constructor(uint tokensupply) {
-        maxSupply=tokensupply;
-        tokenOwnerEth = payable(msg.sender);
-        tokenOwner = address(this);
         _mint(address(this), tokensupply);
         approve(address(this), tokensupply);
     }
@@ -41,6 +34,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         uint votedeadline;
         uint[] paymentamounts;
         uint[] payschedule;
+        mapping(uint => bool) paid; // Check if proposal schedule paid before.
 
         // Those values are used in voteForProjectProposal.
         mapping(address => uint8) votes; // 0->not voted, 1->no, 2->yes
@@ -83,12 +77,20 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         // Transfer and revert if transfer failed.
         require(transfer(dest, token), "Failed to send token!");
     }
-
+    // Unused
+    /*
     // Check for tests and transfer specified amounts (eth) of etherem to destination address (dest) in wei.
     function transferEth(address payable dest, uint eth) public payable {
         // Transfer ethereum to destined address as wei. Revert on failure.
         (bool success, ) = dest.call{value: eth}("");
         require(success, "Failed to send Ether!");
+    }
+    */
+    function transferEthTokenContract(uint token, uint eth) public payable{
+        // Check if user sent relevant Eth amount to the contract
+        require(msg.value==eth, "Please send required ethereum for this operation!");
+        // Transfer and revert if transfer failed.
+        transferToken(address(this), token);
     }
 /*
     // Test only function for contract owner to send eth to specific addresses
@@ -101,9 +103,6 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
     function faucet()public{
         // Every address can only use the faucet for once.
         require(!faucetUsage[msg.sender], "Faucet already used!");
-        // Token creation should stop at specified supply limit.
-        require(supliedToken<maxSupply, "Supply limit reached!");
-
         // Don't allow token transfer more than sender accounts balance
         require(balanceOf(address(this))>=1, "No tokens left on contract");
         // Transfer and revert if transfer failed.
@@ -144,12 +143,12 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
 
     // Send ethereum to coinbase account.
     function donateEther() external payable {
-        transferEth(tokenOwnerEth, msg.value);
+        payable(address(this)).transfer(msg.value);
     }
 
     // Send token to coinbase account.
     function donateMyGovToken(uint amount) public {
-        transferToken(tokenOwner, amount);
+        transferToken(address(this), amount);
     }
 
     // Return token balance of current address.
@@ -232,8 +231,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         require(balanceOf(msg.sender) >= 5, "Token balance is not enough");
         require(address(msg.sender).balance >= 100 * 10**15,"ETH balance is not enough");
         // Pay to submit project proposal
-        transferToken(tokenOwner, 5);
-        transferEth(tokenOwnerEth, 100*10**15);
+        transferEthTokenContract(5, 100*10**15);
         // Set and initialize required fields
         projectid = proposals.length;
         Proposal storage newProposal = proposals.push();
@@ -259,8 +257,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         require(balanceOf(msg.sender) >= 2, "Token balance is not enough");
         require(address(msg.sender).balance >= 40 * 10**15,"ETH balance is not enough");
         // Pay to submit project proposal
-        transferEth(tokenOwnerEth, 40*10**15);
-        transferToken(tokenOwner, 2);
+        transferEthTokenContract(2, 40*10**15);
         // Set and initialize required fields
         surveyid = surveys.length;
         Survey storage newSurvey = surveys.push();
@@ -291,6 +288,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         }
     }
 
+    // Only project owner can call this function!
     // Check if coinbase account has enough ethereum for next payment schedule, and enable withdrawal.
     function reserveProjectGrant(uint projectid)public{
         Proposal storage p = proposals[projectid];
@@ -299,40 +297,38 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         require(msg.sender == p.owner, "Only project owner should call this method");
         
         // Get next payment schedule
-        uint current_time_index = 0;
-        for(uint i = 0; i < p.payschedule.length; i++){
-            if(block.timestamp > p.payschedule[i]){
-                current_time_index = i;
-            }
-        }
+        uint current_time_index = getProjectNextSchedule(p);
         
         // Check if coinbase account has enough balance in ethereum.
-        require(address(tokenOwnerEth).balance >= p.paymentamounts[current_time_index], 
+        require(address(this).balance-reservedEth >= p.paymentamounts[current_time_index], 
             "There is not enough eth in the contract for current payment schedule!");
         
-        // If community vote is at least 1/10, enable withdrawal.
-        if(p.trueVotes*10 > p.voteCount){
-            p.isWon = true;
+        require(!p.paid[current_time_index], "Scheduled fund already reserved!");
+
+        if(p.isWon){
+            require(p.paymentTrueVotes*100 >= p.paymentVoteCount, "Less than 1 percent vote");
+        } else{
+            require(p.paymentTrueVotes*10 >= p.paymentVoteCount, "Less than 10 percent vote");
         }
-        else {
-            p.isWon = false;
-        }
+        balances[p.owner]+=p.paymentamounts[current_time_index];
+        reservedEth+=p.paymentamounts[current_time_index];
+        p.paid[current_time_index]=true;
     }
 
-    // Only contract owner can call this function!
+    // Only project owner can call this function!
     // Send scheduled project payment to the project owner.
     function withdrawProjectPayment(uint projectid)public{
         Proposal storage p = proposals[projectid];
-        require(msg.sender == tokenOwner, "Only executable when get eth from the Contract Owner");
-        // Withdrawal should be enabled and payment vote should be at leas 1/100.
-        require(p.paymentTrueVotes*100 >= p.paymentVoteCount, "Less than 1 percent vote");
+        require(msg.sender == p.owner, "Only project owner should call this method");
         require(p.isWon, "Project grant not reserved");
-        // Get next payment value and transfer it to the project owner.
-        uint nextPayment = getProjectNextPayment(projectid);
-        transferEth(payable(p.owner), nextPayment);
+        require(balances[p.owner]>0, "No balance at contract");
+        // Pay reserved value
+        payable(msg.sender).transfer(balances[p.owner]);
         // Set payment information
+        reservedEth-=balances[p.owner];
+        p.balanceOfProject+=balances[p.owner];
+        balances[p.owner]=0;
         p.isFunded = true;
-        p.balanceOfProject+=nextPayment;
     }
 
     // Return survey results.
@@ -368,19 +364,22 @@ contract MyGovToken is ERC20("MyGov Token", "MGT"){
         funded = project.isFunded;
     }
 
-
-    // Get next project payment amount.
-    function getProjectNextPayment(uint projectid)public view returns(uint next){
-        Proposal storage p = proposals[projectid];
-        uint current_time_index = 0;
+    // Get next project payment schedule.
+    function getProjectNextSchedule(Proposal storage p)private view returns(uint current_time_index){
+        current_time_index = 0;
         // Get next scheduled project payment timing.
         for(uint i = 0; i < p.payschedule.length; i++){
             if(block.timestamp > p.payschedule[i]){
                 current_time_index = i;
             }
         }
+    }
+
+    // Get next project payment amount.
+    function getProjectNextPayment(uint projectid)public view returns(uint next){
         // Return project payment amount from the timing obtained before.
-        next = p.paymentamounts[current_time_index];
+        Proposal storage p = proposals[projectid];
+        next = p.paymentamounts[getProjectNextSchedule(p)];
     }
 
     // Return project owner's address.
