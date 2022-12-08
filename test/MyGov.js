@@ -59,14 +59,14 @@ getReturnPayable = (returnPromise)=>{
     })
 }
 
-contract('MyGov', () => {
+contract('MyGov100', () => {
     before(async () => {
         //accounts = await web3.eth.getAccounts()
         const allAccounts = await web3.eth.getAccounts()
         const coinbase = allAccounts[0]
         console.log(coinbase)
         
-        accounts = await createEthAccounts(20, coinbase)
+        accounts = await createEthAccounts(100, coinbase)
         console.log(`Created account number: ${accounts.length}`)
 
         temp = await web3.eth.getAccounts()
@@ -76,7 +76,7 @@ contract('MyGov', () => {
         myGov = await MyGov.deployed()
 
         // Donate tokens to one account to be able to propose new surveys and proposals
-        await sendTokenFromOthers(myGov, 1, 5, 20)
+        await sendTokenFromOthers(myGov, 1, 50, 100)
         console.log("current: ", (await myGov.tokenBalance.call({from: accounts[1]})).toNumber())
     })
 
@@ -148,5 +148,39 @@ contract('MyGov', () => {
 
         assert(numberOfSurveysAfter.toNumber() === numberOfSurveysBefore.toNumber() + 1)
         console.log(`Current eth balance: ${web3.utils.fromWei(await web3.eth.getBalance(myGov.address), "ether")}`)
+    })
+})
+
+contract('MyGov200', () => {
+    before(async () => {
+        //accounts = await web3.eth.getAccounts()
+        const allAccounts = await web3.eth.getAccounts()
+        const coinbase = allAccounts[0]
+        console.log(coinbase)
+        
+        accounts = [...accounts, ...(await createEthAccounts(100, coinbase))]
+        console.log(`Created account number: ${accounts.length}`)
+
+        temp = await web3.eth.getAccounts()
+        console.log(`Coinbase balance: ${web3.utils.fromWei(await web3.eth.getBalance(temp[0]), 'ether')}`)
+
+        // Bunu kaldırınca myGov yenilenmiyor, aşağıdaki test çalışıyor.
+        // const numberOfSurveysAfter = await myGov.getNoOfSurveys()
+
+        // Donate tokens to one account to be able to propose new surveys and proposals
+        //await sendTokenFromOthers(myGov, 1, 5, 20)
+        console.log("current: ", (await myGov.tokenBalance.call({from: accounts[1]})).toNumber())
+    })
+
+    it('should deploy smart contract properly', async () => {
+        console.log(myGov.address)
+        assert(myGov.address !== '')
+        const info = await myGov.getSurveyInfo(0)
+        assert(
+            info.ipfshash === 'asdasdsad' &&
+            info.surveydeadline.toNumber() === 1231241 &&
+            info.numchoices.toNumber() === 3 &&
+            info.atmostchoice.toNumber() === 5
+        )
     })
 })
