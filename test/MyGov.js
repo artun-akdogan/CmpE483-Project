@@ -1,56 +1,52 @@
 const MyGov = artifacts.require('MyGovToken')
-const Web3 = require('web3');
 
 let accounts = []
 let myGov
 
-function BigToIntArray(bigarr){
+function BigToIntArray(bigarr) {
     let array = []
-    for(var i=0;i<bigarr.length;i++){
+    for (var i = 0; i < bigarr.length; i++) {
         array.push(bigarr[i].toNumber())
     }
     return array
 }
 
-function compareArray(arr1, arr2){
-    if(arr1.length!==arr2.length)
+function compareArray(arr1, arr2) {
+    if (arr1.length !== arr2.length)
         return false;
-    for(var i=0;i<arr1.length;i++)
-        if(arr1[i]!==arr2[i])
+    for (var i = 0; i < arr1.length; i++)
+        if (arr1[i] !== arr2[i])
             return false;
     return true;
 }
 
-sendTokenFromOthers = (govToken, dest, _from, _to)=>{
-    return Promise.all([...Array(_to-_from).keys()].map(i => {
-        return new Promise(async(resolve, reject) => {
-            //console.log(`From address: ${i + _from}`)
-            await govToken.faucet({from: accounts[i + _from]})
+sendTokenFromOthers = (govToken, dest, _from, _to) => {
+    return Promise.all([...Array(_to - _from).keys()].map(i => {
+        return new Promise(async (resolve, reject) => {
+            await govToken.faucet({ from: accounts[i + _from] })
             await new Promise(r => setTimeout(r, 300));
-            //console.log("test: ", i + _from, await myGov.tokenBalance.call({from: accounts[i + _from]}))
-            await govToken.transferToken(accounts[dest], 1, {from: accounts[i + _from]})
+            await govToken.transferToken(accounts[dest], 1, { from: accounts[i + _from] })
             resolve()
         })
     }))
 }
 
-createEthAccounts = (size, coinbase)=>{
+createEthAccounts = (size, coinbase) => {
     return Promise.all([...Array(size).keys()].map(i => {
-        return new Promise(async(resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             let account = await web3.eth.personal.newAccount('password')
-            await web3.eth.personal.unlockAccount(account,'password',0) 
-            await web3.eth.sendTransaction({from:coinbase,to:account,value:web3.utils.toWei("10", "ether")})
+            await web3.eth.personal.unlockAccount(account, 'password', 0)
+            await web3.eth.sendTransaction({ from: coinbase, to: account, value: web3.utils.toWei("10", "ether") })
             resolve(account)
         })
     }))
 }
 
-getReturnPayable = (returnPromise)=>{
+getReturnPayable = (returnPromise) => {
     return new Promise((resolve, reject) => {
-        returnPromise.then((result)=>{
+        returnPromise.then((result) => {
             for (let i = 0; i < result.logs.length; i++) {
                 if (result.logs[i].event == "Transfer") {
-                    //console.log(JSON.stringify(result))
                     resolve(result.logs[i].args.value)
                 }
             }
@@ -61,23 +57,113 @@ getReturnPayable = (returnPromise)=>{
 
 contract('MyGov100', () => {
     before(async () => {
-        //accounts = await web3.eth.getAccounts()
         const allAccounts = await web3.eth.getAccounts()
         const coinbase = allAccounts[0]
-        console.log(coinbase)
-        
+        console.log("coinbase account address:", coinbase)
+
         accounts = await createEthAccounts(100, coinbase)
         console.log(`Created account number: ${accounts.length}`)
 
         temp = await web3.eth.getAccounts()
         console.log(`Coinbase balance: ${web3.utils.fromWei(await web3.eth.getBalance(temp[0]), 'ether')}`)
 
-        // wait for myGov to be deployed
         myGov = await MyGov.deployed()
 
-        // Donate tokens to one account to be able to propose new surveys and proposals
         await sendTokenFromOthers(myGov, 1, 50, 100)
-        console.log("current: ", (await myGov.tokenBalance.call({from: accounts[1]})).toNumber())
+        console.log("Current token balance:", (await myGov.tokenBalance.call({ from: accounts[1] })).toNumber())
+    })
+
+    it('should deploy smart contract properly', async () => {
+        console.log("contract address:", myGov.address)
+        assert(myGov.address !== '')
+    })
+
+    it('should get token from faucet', async () => {
+        const initialBalance = await myGov.tokenBalance({ from: accounts[1] })
+        console.log(`token balance of ${accounts[1]} before faucet is:`, initialBalance.toNumber())
+        await myGov.faucet({ from: accounts[1] })
+        const afterBalance = await myGov.tokenBalance({ from: accounts[1] })
+        console.log(`token balance of ${accounts[1]} after faucet is:`, afterBalance.toNumber())
+        assert(afterBalance.toNumber() == (initialBalance.toNumber() + 1))
+    })
+
+    it('should submit proposal correctly', async () => {
+        const numberOfProposalsBefore = await myGov.getNoOfProjectProposals()
+        console.log(`number of proposals before submit proposal is:`, numberOfProposalsBefore.toNumber())
+        const initialBalance = await web3.eth.getBalance(accounts[1])
+        console.log(`eth balance of ${accounts[1]} before submit proposal is:`, initialBalance)
+        const propResult = myGov.submitProjectProposal(
+            "asdasdsad",
+            1231241,
+            [3, 5, 6, 8],
+            [1231241, 1231241, 123124, 1231244],
+            { from: accounts[1], value: web3.utils.toWei("0.1", "ether") }
+        )
+        const projectid = await getReturnPayable(propResult)
+        const info = await myGov.getProjectInfo(0)
+        assert(
+            info.ipfshash === 'asdasdsad' &&
+            info.votedeadline.toNumber() === 1231241 &&
+            compareArray(BigToIntArray(info.paymentamounts), [3, 5, 6, 8]) &&
+            compareArray(BigToIntArray(info.payschedule), [1231241, 1231241, 123124, 1231244])
+        )
+
+        const numberOfProposalsAfter = await myGov.getNoOfProjectProposals()
+        console.log(`number of proposals after submit proposal is:`, numberOfProposalsAfter.toNumber())
+
+        assert(numberOfProposalsAfter.toNumber() === numberOfProposalsBefore.toNumber() + 1)
+        console.log(`Current eth balance of the contract: ${web3.utils.fromWei(await web3.eth.getBalance(myGov.address), "ether")}`)
+        const afterBalance = await web3.eth.getBalance(accounts[1])
+        console.log(`eth balance of ${accounts[1]} after submit proposal is:`, afterBalance)
+
+    })
+
+    it('should submit survey correctly', async () => {
+        const numberOfSurveysBefore = await myGov.getNoOfSurveys()
+        console.log(`number of surveys before submit survey is:`, numberOfSurveysBefore.toNumber())
+        const initialBalance = await web3.eth.getBalance(accounts[1])
+        console.log(`eth balance of ${accounts[1]} before submit survey is:`, initialBalance)
+        const surveyResult = myGov.submitSurvey(
+            'asdasdsad',
+            1231241,
+            3,
+            5,
+            { from: accounts[1], value: web3.utils.toWei("0.04", "ether") }
+        )
+
+        const surveyid = await getReturnPayable(surveyResult)
+        const info = await myGov.getSurveyInfo(0)
+        assert(
+            info.ipfshash === 'asdasdsad' &&
+            info.surveydeadline.toNumber() === 1231241 &&
+            info.numchoices.toNumber() === 3 &&
+            info.atmostchoice.toNumber() === 5
+        )
+
+        const numberOfSurveysAfter = await myGov.getNoOfSurveys()
+        console.log(`number of surveys after submit survey is:`, numberOfSurveysAfter.toNumber())
+
+        assert(numberOfSurveysAfter.toNumber() === numberOfSurveysBefore.toNumber() + 1)
+        console.log(`Current eth balance of the contract: ${web3.utils.fromWei(await web3.eth.getBalance(myGov.address), "ether")}`)
+
+        const afterBalance = await web3.eth.getBalance(accounts[1])
+        console.log(`eth balance of ${accounts[1]} after submit survey is:`, afterBalance)
+    })
+})
+
+contract('MyGov200', () => {
+    before(async () => {
+        const allAccounts = await web3.eth.getAccounts()
+        const coinbase = allAccounts[0]
+        console.log(coinbase)
+
+        accounts = [...accounts, ...(await createEthAccounts(100, coinbase))]
+        console.log(`Created account number: ${accounts.length}`)
+
+        temp = await web3.eth.getAccounts()
+        console.log(`Coinbase balance: ${web3.utils.fromWei(await web3.eth.getBalance(temp[0]), 'ether')}`)
+
+        console.log("current: ", (await myGov.tokenBalance.call({ from: accounts[1] })).toNumber())
     })
 
     it('should deploy smart contract properly', async () => {
@@ -86,10 +172,10 @@ contract('MyGov100', () => {
     })
 
     it('should get token from faucet', async () => {
-        const initialBalance = await myGov.tokenBalance({from: accounts[1]})
+        const initialBalance = await myGov.tokenBalance({ from: accounts[1] })
         console.log(accounts[1], initialBalance)
-        await myGov.faucet({from: accounts[1]})
-        const afterBalance = await myGov.tokenBalance({from: accounts[1]})
+        await myGov.faucet({ from: accounts[1] })
+        const afterBalance = await myGov.tokenBalance({ from: accounts[1] })
         assert(afterBalance.toNumber() == (initialBalance.toNumber() + 1))
     })
 
@@ -102,13 +188,10 @@ contract('MyGov100', () => {
             1231241,
             [3, 5, 6, 8],
             [1231241, 1231241, 123124, 1231244],
-            {from: accounts[1], value: web3.utils.toWei("0.1", "ether")}
+            { from: accounts[1], value: web3.utils.toWei("0.1", "ether") }
         )
-        const projectid= await getReturnPayable(propResult)
-        console.log(`Returned ProjectId ${projectid}`)
-        // Returned projectid is faulty.
+        const projectid = await getReturnPayable(propResult)
         const info = await myGov.getProjectInfo(0)
-        //console.log(JSON.stringify(info), info.votedeadline.toNumber())
         assert(
             info.ipfshash === 'asdasdsad' &&
             info.votedeadline.toNumber() === 1231241 &&
@@ -121,66 +204,114 @@ contract('MyGov100', () => {
         assert(numberOfProposalsAfter.toNumber() === numberOfProposalsBefore.toNumber() + 1)
         console.log(`Current eth balance: ${web3.utils.fromWei(await web3.eth.getBalance(myGov.address), "ether")}`)
     })
-
-    it('should submit survey correctly', async () => {
-        const numberOfSurveysBefore = await myGov.getNoOfSurveys()
-
-        const surveyResult = myGov.submitSurvey(
-            'asdasdsad',
-            1231241,
-            3,
-            5,
-            {from: accounts[1], value: web3.utils.toWei("0.04", "ether")}
-        )
-
-        const surveyid = await getReturnPayable(surveyResult)
-        console.log(`Returned SurveyId ${surveyid}`)
-        // surveyid not working correctly
-        const info = await myGov.getSurveyInfo(0)
-        assert(
-            info.ipfshash === 'asdasdsad' &&
-            info.surveydeadline.toNumber() === 1231241 &&
-            info.numchoices.toNumber() === 3 &&
-            info.atmostchoice.toNumber() === 5
-        )
-
-        const numberOfSurveysAfter = await myGov.getNoOfSurveys()
-
-        assert(numberOfSurveysAfter.toNumber() === numberOfSurveysBefore.toNumber() + 1)
-        console.log(`Current eth balance: ${web3.utils.fromWei(await web3.eth.getBalance(myGov.address), "ether")}`)
-    })
 })
 
-contract('MyGov200', () => {
+contract('MyGov300', () => {
     before(async () => {
-        //accounts = await web3.eth.getAccounts()
         const allAccounts = await web3.eth.getAccounts()
         const coinbase = allAccounts[0]
         console.log(coinbase)
-        
+
         accounts = [...accounts, ...(await createEthAccounts(100, coinbase))]
         console.log(`Created account number: ${accounts.length}`)
 
         temp = await web3.eth.getAccounts()
         console.log(`Coinbase balance: ${web3.utils.fromWei(await web3.eth.getBalance(temp[0]), 'ether')}`)
 
-        // Bunu kaldırınca myGov yenilenmiyor, aşağıdaki test çalışıyor.
-        // const numberOfSurveysAfter = await myGov.getNoOfSurveys()
-
-        // Donate tokens to one account to be able to propose new surveys and proposals
-        //await sendTokenFromOthers(myGov, 1, 5, 20)
-        console.log("current: ", (await myGov.tokenBalance.call({from: accounts[1]})).toNumber())
+        console.log("current: ", (await myGov.tokenBalance.call({ from: accounts[1] })).toNumber())
     })
 
     it('should deploy smart contract properly', async () => {
         console.log(myGov.address)
         assert(myGov.address !== '')
-        const info = await myGov.getSurveyInfo(0)
+    })
+
+    it('should get token from faucet', async () => {
+        const initialBalance = await myGov.tokenBalance({ from: accounts[1] })
+        console.log(accounts[1], initialBalance)
+        await myGov.faucet({ from: accounts[1] })
+        const afterBalance = await myGov.tokenBalance({ from: accounts[1] })
+        assert(afterBalance.toNumber() == (initialBalance.toNumber() + 1))
+    })
+
+    it('should submit proposal correctly', async () => {
+        const numberOfProposalsBefore = await myGov.getNoOfProjectProposals()
+
+        console.log(await web3.eth.getBalance(accounts[1]))
+        const propResult = myGov.submitProjectProposal(
+            "asdasdsad",
+            1231241,
+            [3, 5, 6, 8],
+            [1231241, 1231241, 123124, 1231244],
+            { from: accounts[1], value: web3.utils.toWei("0.1", "ether") }
+        )
+        const projectid = await getReturnPayable(propResult)
+        const info = await myGov.getProjectInfo(0)
         assert(
             info.ipfshash === 'asdasdsad' &&
-            info.surveydeadline.toNumber() === 1231241 &&
-            info.numchoices.toNumber() === 3 &&
-            info.atmostchoice.toNumber() === 5
+            info.votedeadline.toNumber() === 1231241 &&
+            compareArray(BigToIntArray(info.paymentamounts), [3, 5, 6, 8]) &&
+            compareArray(BigToIntArray(info.payschedule), [1231241, 1231241, 123124, 1231244])
         )
+
+        const numberOfProposalsAfter = await myGov.getNoOfProjectProposals()
+
+        assert(numberOfProposalsAfter.toNumber() === numberOfProposalsBefore.toNumber() + 1)
+        console.log(`Current eth balance: ${web3.utils.fromWei(await web3.eth.getBalance(myGov.address), "ether")}`)
+    })
+})
+
+contract('MyGov400', () => {
+    before(async () => {
+        const allAccounts = await web3.eth.getAccounts()
+        const coinbase = allAccounts[0]
+        console.log(coinbase)
+
+        accounts = [...accounts, ...(await createEthAccounts(100, coinbase))]
+        console.log(`Created account number: ${accounts.length}`)
+
+        temp = await web3.eth.getAccounts()
+        console.log(`Coinbase balance: ${web3.utils.fromWei(await web3.eth.getBalance(temp[0]), 'ether')}`)
+
+        console.log("current: ", (await myGov.tokenBalance.call({ from: accounts[1] })).toNumber())
+    })
+
+    it('should deploy smart contract properly', async () => {
+        console.log(myGov.address)
+        assert(myGov.address !== '')
+    })
+
+    it('should get token from faucet', async () => {
+        const initialBalance = await myGov.tokenBalance({ from: accounts[1] })
+        console.log(accounts[1], initialBalance)
+        await myGov.faucet({ from: accounts[1] })
+        const afterBalance = await myGov.tokenBalance({ from: accounts[1] })
+        assert(afterBalance.toNumber() == (initialBalance.toNumber() + 1))
+    })
+
+    it('should submit proposal correctly', async () => {
+        const numberOfProposalsBefore = await myGov.getNoOfProjectProposals()
+
+        console.log(await web3.eth.getBalance(accounts[1]))
+        const propResult = myGov.submitProjectProposal(
+            "asdasdsad",
+            1231241,
+            [3, 5, 6, 8],
+            [1231241, 1231241, 123124, 1231244],
+            { from: accounts[1], value: web3.utils.toWei("0.1", "ether") }
+        )
+        const projectid = await getReturnPayable(propResult)
+        const info = await myGov.getProjectInfo(0)
+        assert(
+            info.ipfshash === 'asdasdsad' &&
+            info.votedeadline.toNumber() === 1231241 &&
+            compareArray(BigToIntArray(info.paymentamounts), [3, 5, 6, 8]) &&
+            compareArray(BigToIntArray(info.payschedule), [1231241, 1231241, 123124, 1231244])
+        )
+
+        const numberOfProposalsAfter = await myGov.getNoOfProjectProposals()
+
+        assert(numberOfProposalsAfter.toNumber() === numberOfProposalsBefore.toNumber() + 1)
+        console.log(`Current eth balance: ${web3.utils.fromWei(await web3.eth.getBalance(myGov.address), "ether")}`)
     })
 })
