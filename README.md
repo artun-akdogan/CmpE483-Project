@@ -1,16 +1,12 @@
 # CmpE483-Project-1
+Node-14 and required build tools must be installed in your computer to run the program
 
-A very basic initialization of the project.
+## To test the contract
+* <b>Install truffle:</b> `npm install -g truffle`
+* <b>Run in one terminal:</b> `geth --dev --http --http.api eth,web3,personal,net --allow-insecure-unlock`
+* <b>Run in project folder:</b> `truffle test`
 
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## To run frontend
+* <b>Run in one terminal:</b> `geth --dev --http --http.api eth,web3,personal,net --allow-insecure-unlock`
+* <b>Run in project folder:</b> `npm start` or `npm run dev` if in development
+* <b>Open in browser:</b> `http://localhost:3000/`
