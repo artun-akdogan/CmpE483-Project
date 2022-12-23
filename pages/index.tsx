@@ -1,14 +1,21 @@
 import Head from 'next/head'
+import { useState } from 'react'
 import Web3 from 'web3'
 
 declare var window: any
 
 export default function myGov() {
+    const [error, setError] = useState("")
     let web3
-    const connectWalletHandler = () => {
+
+    const connectWalletHandler = async () => {
       if(typeof window !== "undefined" && typeof window.ethereum !== "undefined"){
-        window.ethereum.request({ method: "eth_requestAccounts" })
-        web3 = new Web3(window.ethereum)
+        try{
+            await window.ethereum.request({ method: "eth_requestAccounts" })
+            web3 = new Web3(window.ethereum)
+        } catch(err: any){
+            setError(err.message)
+        }
       } else{
         console.log("Please install Metamask")
       }
@@ -38,6 +45,16 @@ export default function myGov() {
                     </ul>
                 </div>
             </nav>
+            <section>
+                <div className='container'>
+                    <p>text</p>
+                </div>
+            </section>
+            <section>
+                <div className='container'>
+                    <p>{error}</p>
+                </div>
+            </section>
         </div>
     )
 }
