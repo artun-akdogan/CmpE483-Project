@@ -1,10 +1,12 @@
 import Head from 'next/head'
-import { useState } from 'react'
+import React,{ useState } from 'react'
+import { Card, Row,Button, Space, InputNumber } from 'antd'
 import Web3 from 'web3'
 
 declare var window: any
 
 export default function myGov() {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const [error, setError] = useState("")
     let web3
 
@@ -22,18 +24,18 @@ export default function myGov() {
     }
 
     return(
-        <div>
-            <Head>
+        <div >
+            <Head >
                 <title>Governance App</title>
                 <meta name="description" content="Governance App" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
             </Head>
-            <nav className="navbar navbar-expand-lg navbar-light bg-light">
+            <nav className="navbar navbar-expand-lg navbar-light bg-light" >
                 <a className="navbar-brand" href="#">My Gov App</a>
                 <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span className="navbar-toggler-icon"></span>
                 </button>
-                <div className="collapse navbar-collapse" id="navbarNav">
+                <div className="collapse navbar-collapse" id="navbarNav" >
                     <ul className="navbar-nav">
                         <li className="nav-item active">
                             <a className="nav-link" href="#">Home</a>
@@ -45,16 +47,119 @@ export default function myGov() {
                     </ul>
                 </div>
             </nav>
-            <section>
-                <div className='container'>
-                    <p>text</p>
-                </div>
-            </section>
-            <section>
-                <div className='container'>
-                    <p>{error}</p>
-                </div>
-            </section>
+            
+            <div className="card-container" style={{ padding: "25px", backgroundColor: '#F6F6F6'}}>
+                <Row style={{marginTop: 50}}>
+                    <Card title="Donate Ethereum To MyGov" bordered={false} style={{ width: 450, marginLeft: 50 }}>
+                        <InputNumber placeholder='Enter Ether Amount' style={{ width: '100%' }} />
+                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
+                            Donate Ethereum
+                        </Button>
+                    </Card>
+                    <Card title="Donate MyGov Token" bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <InputNumber placeholder='Enter MyGov Amount' style={{ width: '100%' }} />
+                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
+                            Donate Ethereum
+                        </Button>
+                    </Card>
+                    <Card title="Faucet" bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <text>You can not take more than one token</text>
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                            <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
+                                Take MyGov Token
+                            </Button>
+                        </Space>
+                    </Card>
+                </Row>
+                <Row style={{marginTop: 50}}>
+                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50 }}>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                    </Card>
+                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                    </Card>
+                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                    </Card>
+                </Row>
+                <Row style={{marginTop: 50}}>
+                    <Card title="Survey Result" bordered={false} style={{ width: 450, marginLeft: 50 }}>
+                        <InputNumber placeholder='Enter Survey Id' style={{ width: '100%' }} />
+                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
+                            Get Result Of The Survey
+                        </Button>
+                    </Card>
+                    <Card title="Survey Information"  bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <InputNumber placeholder='Enter Survey Id' style={{ width: '100%' }} />
+                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
+                            Get Information About The Survey
+                        </Button>
+                    </Card>
+                    <Card title="Survey Owner" bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <InputNumber placeholder='Enter Survey Id' style={{ width: '100%' }} />
+                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
+                            Get Address of Survey Owner
+                        </Button>
+                    </Card>
+                </Row>
+                <Row style={{marginTop: 50}}>
+                    <Card title="Total Project Proposals" bordered={false} style={{ width: 450, marginLeft: 50 }}>
+                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
+                            Get The Number Of Project Proposals
+                        </Button>
+                    </Card>
+                    <Card title="Total Funded Projects" bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
+                            Get The Number Of Funded Projects
+                        </Button>
+                    </Card>
+                    <Card title="Total Surveys" bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
+                            Get Number Of Surveys
+                        </Button>
+                    </Card>
+                </Row>
+                <Row style={{marginTop: 50}}>
+                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50 }}>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                    </Card>
+                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                    </Card>
+                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                    </Card>
+                </Row>
+                <Row style={{marginTop: 50}}>
+                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50 }}>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                    </Card>
+                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                    </Card>
+                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50  }}>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                        <p>Card content</p>
+                    </Card>
+                </Row>
+            </div>
         </div>
     )
 }
