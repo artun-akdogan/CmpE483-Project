@@ -2,6 +2,7 @@ import Head from 'next/head'
 import React,{ useState } from 'react'
 import { Card, Row,Button, Space, InputNumber } from 'antd'
 import Web3 from 'web3'
+import mygovContract from '../blockchain/mygov'
 
 declare var window: any
 
