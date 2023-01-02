@@ -10,3 +10,6 @@ Node-14 and required build tools must be installed in your computer to run the p
 * <b>Run in one terminal:</b> `geth --dev --http --http.api eth,web3,personal,net --allow-insecure-unlock`
 * <b>Run in project folder:</b> `npm start` or `npm run dev` if in development
 * <b>Open in browser:</b> `http://localhost:3000/`
+
+## To deploy the contract
+* <b>`truffle deploy --network fuji`</b>
