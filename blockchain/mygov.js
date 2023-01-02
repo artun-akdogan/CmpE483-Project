@@ -1,6 +1,6 @@
 import Web3 from "web3";
 
-const provider = new Web3.providers.HttpProvider("address")
+const provider = new Web3.providers.HttpProvider("https://testnet.bloxberg.org/")
 
 const web3 = new Web3(provider)
 

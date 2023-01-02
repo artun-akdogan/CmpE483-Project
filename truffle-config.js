@@ -1,21 +1,22 @@
+require('dotenv').config();
+const HDWalletProvider = require("@truffle/hdwallet-provider");
+
+const mnemonic = process.env.PRIVATE_KEY;
 
 module.exports = {
   networks: {
-    development: {
-      host: "127.0.0.1",
-      port: 8545,
-      network_id: "*"
+    fuji: {
+      provider: new HDWalletProvider(mnemonic, "https://api.avax-test.network/ext/bc/C/rpc"),
+      network_id: 43113,
     }
-  },
-  mocha: {
   },
   compilers: {
     solc: {
-      version: "0.8.17",
+      version: "^0.8.0",
       optimizer: {
         enabled: true,
         runs: 200
       }
     }
   }
-};
+}

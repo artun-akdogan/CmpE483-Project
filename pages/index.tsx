@@ -24,6 +24,54 @@ export default function myGov() {
       }
     }
 
+    const donateEtherHandler = async () => {
+        await mygovContract.methods.donateEther().call()
+    }
+
+    const donateMyGovTokenHandler = async () => {
+        await mygovContract.methods.donateMyGovTokenHandler().call()
+    }
+
+    const delegateVoteHandler = async () => {
+        await mygovContract.methods.delegateVoteTo("address", 1).call()
+    }
+
+    const voteForProjectProposalHandler = async () => {
+        await mygovContract.methods.voteForProjectProposal(1, true).call()
+    }
+
+    const voteForProjectPaymentHandler = async () => {
+        await mygovContract.methods.voteForProjectPayment(1, true).call()
+    }
+
+    const submitProjectProposalHandler = async () => {
+        let projectId : number = await mygovContract.methods.submitProjectProposal("ipfshash", "123", [1,2], [2,3]).call()
+    }
+
+    const takeSurveyHandler = async () => {
+        await mygovContract.methods.takeSurvey(1, [1,2]).call()
+    }
+
+    const withdrawProjectPaymentHandler = async () => {
+        await mygovContract.methods.withdrawProjectPayment(1).call()
+    }
+
+    const getSurveyResultsHandler = async () => {
+        let result = await mygovContract.methods.getSurveyInfo(1).call()
+    }
+
+    const getSurveyOwnerHandler = async () => {
+        let surverOwner = await mygovContract.methods.getSurveyOwner(1).call()
+    }
+
+    const getIsProjectFundedHandler = async () => {
+        let isFunded: boolean = await mygovContract.methods.getIsProjectFunded(1).call()
+    }
+
+    const getProjectNextScheduleHandler = async () => {
+        let nextSchedule: number = await mygovContract.methods.getProjectNextSchedule(1).call()
+    }
+
     return(
         <div >
             <Head >
@@ -53,7 +101,7 @@ export default function myGov() {
                 <Row style={{marginTop: 50}}>
                     <Card title="Donate Ethereum To MyGov" bordered={false} style={{ width: 450, marginLeft: 50 }}>
                         <InputNumber placeholder='Enter Ether Amount' style={{ width: '100%' }} />
-                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
+                        <Button onClick={donateEtherHandler} style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
                             Donate Ethereum
                         </Button>
                     </Card>
