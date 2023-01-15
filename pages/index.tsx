@@ -23,7 +23,7 @@ export default function myGov() {
             setWeb3(tempWeb3)
             const accounts = await tempWeb3.eth.getAccounts()
             setAddress(accounts[0])
-            const mygov = mygovContractDeploy(web3)
+            const mygov = mygovContractDeploy(tempWeb3)
             setMyGovContract(mygov)
             
             notification['info']({message: "Account connected successfully"})
@@ -262,7 +262,7 @@ export default function myGov() {
     const getSurveyResultsHandler = async () => {
         try{
             let result = await mygovContractOwner.methods.getSurveyResults(surveyResultsId).call()
-            notification['info']({message: result.toString()})
+            notification['info']({message: `NumTaken: ${result["numtaken"]}\nResults: ${JSON.stringify(result["results"])}`})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
         }
@@ -272,7 +272,7 @@ export default function myGov() {
     const getSurveyInfoHandler = async () => {
         try{
             let result = await mygovContractOwner.methods.getSurveyInfo(surveyInfoId).call()
-            notification['info']({message: result.toString()})
+            notification['info']({message: `Ipfshash: ${result["ipfshash"]}\nSurvey Deadline: ${result["surveydeadline"]}\nNumChoices: ${result["numchoices"]}\nAt Most Choice: ${result["atmostchoices"]}`})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
         }

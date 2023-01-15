@@ -113,7 +113,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT") {
         // Don't allow token transfer more than sender accounts balance
         require(balanceOf(address(this)) >= 1, "No tokens left on contract");
         // Transfer and revert if transfer failed.
-        _transfer(address(this), msg.sender, 1);
+        _transfer(address(this), msg.sender, 10);
         //supliedToken++;
         faucetUsage[msg.sender] = true;
     }
