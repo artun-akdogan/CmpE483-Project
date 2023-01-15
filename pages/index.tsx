@@ -69,48 +69,74 @@ function DateInput (props: any) {
         }
 }
 
-function DynamicForm (props: any) {
+function DynamicForm2 (props: any) {
     const prototype = { amount: null, schedule: new Date() }
-    const [formFields, setFormFields] = useState([])
   
     const handleFormChange = (name:string, value:number|Date|null, index: number) => {
-      let data = [...formFields];
+      let data = [...props.formFields];
       data[index][name] = value;
-      setFormFields(data);
+      props.setFormFields(data);
     }
-  
-    const submit = (e: any) => {
-      e.preventDefault();
-      console.log(formFields)
-    }
-  
+
     const addFields = () => {
-      setFormFields([...formFields, prototype])
+      props.setFormFields([...props.formFields, prototype])
     }
 
     const removeFields = (index: number) => {
-        let data = [...formFields];
+        let data = [...props.formFields];
         data.splice(index, 1)
-        setFormFields(data)
+        props.setFormFields(data)
     }
 
     return (
-      <div className="App">
-        <form onSubmit={submit}>
-          {formFields.map((form, index) => {
+      <div>
+          {props.formFields.map((form, index) => {
             return (
               <div key={index} style={{ display: "flex" }}>
                 <InputNumber onChange={(value:number|null) => handleFormChange("amount", value, index)} placeholder='Amount' value={form.amount} style={{ width: '45%' }} />
-                <DateInput value={formFields[index]['schedule']} function={(date: Date) => handleFormChange("schedule", date, index)} title="Schedule" width="%45" placeholder={true}/>
+                <DateInput value={props.formFields[index]['schedule']} function={(date: Date) => handleFormChange("schedule", date, index)} title="Schedule" width="%45" placeholder={true}/>
                 <Button onClick={() => removeFields(index)} style={{ width: '10%' }} >-</Button>
               </div>
             )
           })}
-        </form>
         <Button onClick={addFields}>Add Amount/Schedule</Button>
       </div>
     );
   }
+
+function DynamicForm1 (props: any) {
+    const prototype = { choices: "" }
+  
+    const handleFormChange = (name:string, value:number|Date|null, index: number) => {
+      let data = [...props.formFields];
+      data[index][name] = value;
+      props.setFormFields(data);
+    }
+  
+    const addFields = () => {
+      props.setFormFields([...props.formFields, prototype])
+    }
+
+    const removeFields = (index: number) => {
+        let data = [...props.formFields];
+        data.splice(index, 1)
+        props.setFormFields(data)
+    }
+
+    return (
+        <div>
+            {props.formFields.map((form, index) => {
+              return (
+                <div key={index} style={{ display: "flex" }}>
+                  <Input onChange={(e:any) => handleFormChange("amount", e.target.value, index)} placeholder='Choice' value={form.amount} style={{ width: '90%' }} />
+                  <Button onClick={() => removeFields(index)} style={{ width: '10%' }} >-</Button>
+                </div>
+              )
+            })}
+          <Button onClick={addFields}>Add Amount/Schedule</Button>
+        </div>
+    );
+}
 
 export default function myGov() {
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -170,16 +196,31 @@ export default function myGov() {
 
     const [projectIpfshash, setProjectIpfshash] = useState("");
     const [voteDeadline, setVoteDeadline] = useState(new Date());
-    const [projectPaymentAmount, setProjectPaymentAmount] = useState<number[]>([]);
-    const [projectPayschedule, setProjectPayschedule] = useState<number[]>([]);
+    const [projectSubmitPair, setProjectSubmitPair] = useState([])
     const submitProjectProposalHandler = async () => {
         let projectId : number = await mygovContract.methods.submitProjectProposal("ipfshash", "123", [1,2], [2,3]).call()
     }
 
+    const [surveyIpfshash, setSurveyIpfshash] = useState("");
+    const [surveyDeadline, setSurveyDeadline] = useState(new Date());
+    const [surveyNumChoices, setSurveyNumChoices] = useState<number|null>(null);
+    const [surveyAtMostChoice, setSurveyAtMostChoice] = useState<number|null>(null);
+    const submitSurveyHandler = async () => {
+        await mygovContract.methods.submitSurvey().call()
+    }
+
+    const [surveyId, setSurveyId] = useState<number|null>(null);
+    const [surveyChoices, setSurveyChoices] = useState([])
     const takeSurveyHandler = async () => {
         await mygovContract.methods.takeSurvey(1, [1,2]).call()
     }
 
+    const [projGrantId, setProjGrantId] = useState<number|null>(null);
+    const reserveProjectGrantHandler = async () => {
+        await mygovContract.methods.reserveProjectGrant(1).call()
+    }
+
+    const [withdrawId, setWithdrawId] = useState<number|null>(null);
     const withdrawProjectPaymentHandler = async () => {
         await mygovContract.methods.withdrawProjectPayment(1).call()
     }
@@ -238,98 +279,37 @@ export default function myGov() {
                     <FeatureCard title="Delegate My Vote" buttonTitle="Delegate" buttonFunction={delegateVoteHandler}>
                         <text><b>Note: </b>You can only delegate once, this action cannot be undone</text>
                         <InputStr function={setMemAddrDelValue} title='Enter Target Address' />
-                        <InputNum function={setProjectIdDelValue} title='Enter MyGov Amount' />
+                        <InputNum function={setProjectIdDelValue} title='Enter Project ID' />
                     </FeatureCard>
                     <FeatureCard title="Vote For Project Proposal" buttonTitle="Vote" buttonFunction={voteForProjectProposalHandler}>
-                        <InputNum function={setProjectIdPropValue} title='Enter MyGov Amount' />
+                        <InputNum function={setProjectIdPropValue} title='Enter Project ID' />
                         <RadioBoolean value={choicePropValue} function={setChoicePropValue} label="Vote"/>
                     </FeatureCard>
                     <FeatureCard title="Vote For Project Payment" buttonTitle="Vote" buttonFunction={voteForProjectPaymentHandler}>
-                        <InputNum function={setProjectIdPayValue} title='Enter MyGov Amount' />
+                        <InputNum function={setProjectIdPayValue} title='Enter Project ID' />
                         <RadioBoolean value={choicePayValue} function={setChoicePayValue} label="Vote"/>
                     </FeatureCard>
                     <FeatureCard title="Submit Project Proposal" buttonTitle="Submit" buttonFunction={submitProjectProposalHandler}>
-                        <InputNum function={setProjectIdPayValue} title='Enter MyGov Amount' />
+                        <InputStr function={setProjectIpfshash} title='Enter Ipfshash' />
                         <DateInput function={setVoteDeadline} title="Deadline" value={voteDeadline} width="%100" placeholder={false}/>
-                        <DynamicForm />
+                        <DynamicForm2 formFields={projectSubmitPair} setFormFields={setProjectSubmitPair} />
                     </FeatureCard>
-
-
-
-
-                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                    </Card>
-                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                    </Card>
-                    <Card title="Survey Result" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <InputNumber placeholder='Enter Survey Id' style={{ width: '100%' }} />
-                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
-                            Get Result Of The Survey
-                        </Button>
-                    </Card>
-                    <Card title="Survey Information"  bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <InputNumber placeholder='Enter Survey Id' style={{ width: '100%' }} />
-                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
-                            Get Information About The Survey
-                        </Button>
-                    </Card>
-                    <Card title="Survey Owner" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <InputNumber placeholder='Enter Survey Id' style={{ width: '100%' }} />
-                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
-                            Get Address of Survey Owner
-                        </Button>
-                    </Card>
-                    <Card title="Total Project Proposals" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
-                            Get The Number Of Project Proposals
-                        </Button>
-                    </Card>
-                    <Card title="Total Funded Projects" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
-                            Get The Number Of Funded Projects
-                        </Button>
-                    </Card>
-                    <Card title="Total Surveys" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <Button style={{backgroundColor: '#1A1A40', position:'relative', top:'10px'}} type="primary" block >
-                            Get Number Of Surveys
-                        </Button>
-                    </Card>
-                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                    </Card>
-                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                    </Card>
-                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                    </Card>
-                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                    </Card>
-                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                    </Card>
-                    <Card title="Card title" bordered={false} style={{ width: 450, marginLeft: 50, marginBottom: "20px" }}>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                        <p>Card content</p>
-                    </Card>
+                    <FeatureCard title="Submit Survey" buttonTitle="Submit" buttonFunction={submitSurveyHandler}>
+                        <InputStr function={setSurveyIpfshash} title='Enter Ipfshash' />
+                        <DateInput function={setSurveyDeadline} title="Deadline" value={voteDeadline} width="%100" placeholder={false}/>
+                        <InputNum function={setSurveyNumChoices} title="Enter Survey's Number of Choices" />
+                        <InputNum function={setSurveyAtMostChoice} title="Enter Survey's At Most Choice" />
+                    </FeatureCard>
+                    <FeatureCard title="Take Survey" buttonTitle="Submit" buttonFunction={takeSurveyHandler}>
+                        <InputNum function={setSurveyId} title="Enter Survey's Id" />
+                        <DynamicForm1 formFields={surveyChoices} setFormFields={setSurveyChoices} />
+                    </FeatureCard>
+                    <FeatureCard title="Reserve Project Grant" buttonTitle="Submit" buttonFunction={reserveProjectGrantHandler}>
+                        <InputNum function={setProjGrantId} title="Enter Project Id" />
+                    </FeatureCard>
+                    <FeatureCard title="WithdrawProjectPayment" buttonTitle="Submit" buttonFunction={withdrawProjectPaymentHandler}>
+                        <InputNum function={setWithdrawId} title="Enter Project Id" />
+                    </FeatureCard>
                 </Row>
             </div>
         </div>
