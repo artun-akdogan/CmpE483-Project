@@ -1,8 +1,8 @@
 import Head from 'next/head'
-import React,{ useState } from 'react'
+import React,{ useState, useEffect } from 'react'
 import { Row, notification } from 'antd'
 import Web3 from 'web3'
-import {mygovContractOwner, mygovContractDeploy} from '../blockchain/mygov'
+import {mygovContractOwner, mygovContractDeploy, myGovOwnerAddress} from '../blockchain/mygov'
 import {FeatureCard, InputNum, InputStr, RadioBoolean, DateInput, DynamicForm2, DynamicForm1} from './components'
 import BN from 'bn.js'
 
@@ -36,6 +36,10 @@ export default function myGov() {
       }
     }
 
+    
+    const [etherValue, setEtherValue] = useState<number|null>(null);
+    const donateEtherHandler = async () => {
+
     const [etherValue, setEtherValue] = useState<number|null>(null);
     const donateEtherHandler = async () => {
         if(address === null){
@@ -45,7 +49,7 @@ export default function myGov() {
             notification['error']({message: `Please enter a valid number`})
         }
         try{
-            await mygovContract!.methods.donateEther().send({from: address, value: web3!.utils.toWei(etherValue!.toString(), "ether")})
+            await mygovContract!.methods.donateEther().send({from: address, to:myGovOwnerAddress, value: web3!.utils.toWei(etherValue!.toString(), "ether")})
             notification['info']({message: "Success"})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
@@ -60,7 +64,12 @@ export default function myGov() {
         if(myGovTokenValue === null){
             notification['error']({message: `Please enter a valid number`})
         }
-        await mygovContract.methods.donateMyGovToken(myGovTokenValue).call()
+        try{
+            await mygovContract.methods.donateMyGovToken(myGovTokenValue).send({from: address})
+            notification['info']({message: "Success"})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const faucetHandler = async () => {
@@ -68,7 +77,8 @@ export default function myGov() {
             notification['error']({message: `Please connect your wallet first`})
         }
         try{
-            await mygovContract.methods.faucet().send({ from: address})
+            await mygovContract.methods.faucet().send({ from: address })
+            notification['info']({message: "Success"})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
         }
@@ -80,7 +90,12 @@ export default function myGov() {
         if(projectIdDelValue === null){
             notification['error']({message: `Please enter a valid number`})
         }
-        await mygovContract.methods.delegateVoteTo("address", 1).call()
+        try{
+            await mygovContract.methods.delegateVoteTo(memAddrDelValue, projectIdDelValue).send({from: address})
+            notification['info']({message: "Success"})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [projectIdPropValue, setProjectIdPropValue] = useState<number|null>(null);
@@ -89,7 +104,12 @@ export default function myGov() {
         if(projectIdPropValue === null){
             notification['error']({message: `Please enter a valid number`})
         }
-        await mygovContract.methods.voteForProjectProposal(1, true).call()
+        try{
+            await mygovContract.methods.voteForProjectProposal(projectIdPropValue, choicePropValue).send({from: address})
+            notification['info']({message: "Success"})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [projectIdPayValue, setProjectIdPayValue] = useState<number|null>(null);
@@ -98,14 +118,26 @@ export default function myGov() {
         if(projectIdPayValue === null){
             notification['error']({message: `Please enter a valid number`})
         }
-        await mygovContract.methods.voteForProjectPayment(1, true).call()
+        try{
+            await mygovContract.methods.voteForProjectPayment(projectIdPayValue, choicePayValue).send({from: address})
+            notification['info']({message: "Success"})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [projectIpfshash, setProjectIpfshash] = useState("");
     const [voteDeadline, setVoteDeadline] = useState(new Date());
     const [projectSubmitPair, setProjectSubmitPair] = useState([])
     const submitProjectProposalHandler = async () => {
-        let projectId : number = await mygovContract.methods.submitProjectProposal("ipfshash", "123", [1,2], [2,3]).call()
+        const arrAmount = projectSubmitPair.map(d => d["amount"]);
+        const arrSchedule = projectSubmitPair.map(d => d["schedule"]);
+        try{
+            const projectId : number = await mygovContract.methods.submitProjectProposal(projectIpfshash, voteDeadline.getTime(), arrAmount, arrSchedule).send({from: address})
+            notification['info']({message: `Success with Project Id: ${projectId}`})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [surveyIpfshash, setSurveyIpfshash] = useState("");
@@ -116,78 +148,161 @@ export default function myGov() {
         if(surveyNumChoices === null || surveyNumChoices === null){
             notification['error']({message: `Please enter a valid number`})
         }
-        await mygovContract.methods.submitSurvey().call()
+        try{
+            const surveyId: number = await mygovContract.methods.submitSurvey(surveyIpfshash, surveyDeadline.getTime(), surveyNumChoices, surveyAtMostChoice).send({from: address})
+            notification['info']({message: `Success with Survey Id: ${surveyId}`})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [surveyId, setSurveyId] = useState<number|null>(null);
     const [surveyChoices, setSurveyChoices] = useState([])
     const takeSurveyHandler = async () => {
-        await mygovContract.methods.takeSurvey(1, [1,2]).call()
+        if(surveyId === null){
+            notification['error']({message: `Please enter a valid number`})
+        }
+        const surveyArr = surveyChoices.map(d => d["choices"]);
+        try{
+            await mygovContract.methods.takeSurvey(surveyId, surveyArr).send({from: address})
+            notification['info']({message: "Success"})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [projGrantId, setProjGrantId] = useState<number|null>(null);
     const reserveProjectGrantHandler = async () => {
-        await mygovContract.methods.reserveProjectGrant(1).call()
+        if(projGrantId === null){
+            notification['error']({message: `Please enter a valid number`})
+        }
+        try{
+            await mygovContract.methods.reserveProjectGrant(projGrantId).send({from: address})
+            notification['info']({message: "Success"})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [withdrawId, setWithdrawId] = useState<number|null>(null);
     const withdrawProjectPaymentHandler = async () => {
-        await mygovContract.methods.withdrawProjectPayment(1).call()
+        if(withdrawId === null){
+            notification['error']({message: `Please enter a valid number`})
+        }
+        try{
+            const result = await mygovContract.methods.withdrawProjectPayment(withdrawId).send({from: address})
+            notification['info']({message: "Success"})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [surveyResultsId, setSurveyResultsId] = useState<number|null>(null);
     const getSurveyResultsHandler = async () => {
-        let result = await mygovContract.methods.getSurveyResults(1).call()
+        try{
+            let result = await mygovContract.methods.getSurveyResults(surveyResultsId).call()
+            notification['info']({message: result.toString()})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
     
     const [surveyInfoId, setSurveyInfoId] = useState<number|null>(null);
     const getSurveyInfoHandler = async () => {
-        let result = await mygovContract.methods.getSurveyInfo(1).call()
+        try{
+            let result = await mygovContract.methods.getSurveyInfo(surveyInfoId).call()
+            notification['info']({message: result.toString()})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [surveyOwnerId, setSurveyOwnerId] = useState<number|null>(null);
     const getSurveyOwnerHandler = async () => {
-        let surverOwner = await mygovContract.methods.getSurveyOwner(1).call()
+        try{
+            let surverOwner = await mygovContract.methods.getSurveyOwner(surveyOwnerId).call()
+            notification['info']({message: surverOwner.toString()})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [isProjectFundedId, setIsProjectFundedId] = useState<number|null>(null);
     const getIsProjectFundedHandler = async () => {
-        let isFunded: boolean = await mygovContract.methods.getIsProjectFunded(1).call()
+        try{
+            let isFunded: boolean = await mygovContract.methods.getIsProjectFunded(isProjectFundedId).call()
+            notification['info']({message: isFunded.toString()})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [projectNextPaymentId, setProjectNextPaymentId] = useState<number|null>(null);
     const getProjectNextPaymentHandler = async () => {
-        let result = await mygovContract.methods.getProjectNextPayment(1).call()
+        try{
+            let result = await mygovContract.methods.getProjectNextPayment(projectNextPaymentId).call()
+            notification['info']({message: result.toString()})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [projectOwnerId, setProjectOwnerId] = useState<number|null>(null);
     const getProjectOwnerHandler = async () => {
-        let result = await mygovContract.methods.getProjectOwner(1).call()
+        try{
+            let result = await mygovContract.methods.getProjectOwner(projectOwnerId).call()
+            notification['info']({message: result.toString()})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [projectInfoId, setProjectInfoId] = useState<number|null>(null);
     const getProjectInfoHandler = async () => {
-        let result = await mygovContract.methods.getProjectInfo(1).call()
+        try{
+            let result = await mygovContract.methods.getProjectInfo(projectInfoId).call()
+            notification['info']({message: result.toString()})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const getNoOfProjectProposalsHandler = async () => {
-        let result = await mygovContract.methods.getNoOfProjectProposals().call()
+        try{
+            let result = await mygovContract.methods.getNoOfProjectProposals().call()
+            notification['info']({message: result.toString()})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const getNoOfFundedProjectsHandler = async () => {
-        let result = await mygovContract.methods.getNoOfFundedProjects().call()
+        try{
+            let result = await mygovContract.methods.getNoOfFundedProjects().call()
+            notification['info']({message: result.toString()})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [etherReceivedByProjectId, setEtherReceivedByProjectId] = useState<number|null>(null);
     const getEtherReceivedByProjectHandler = async () => {
-        let result = await mygovContract.methods.getEtherReceivedByProject(1).call()
+        try{
+            let result = await mygovContract.methods.getEtherReceivedByProject(etherReceivedByProjectId).call()
+            notification['info']({message: result.toString()})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const getNoOfSurveysHandler = async () => {
-        let result = await mygovContract.methods.getNoOfSurveys().call()
+        try{
+            let result = await mygovContract.methods.getNoOfSurveys().call()
+            notification['info']({message: result.toString()})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
-
-
 
     return(
         <div>
@@ -285,8 +400,9 @@ export default function myGov() {
                     </FeatureCard>
                     <FeatureCard title="Get Ether Received By Project" buttonTitle="Get" buttonFunction={getEtherReceivedByProjectHandler}>
                         <InputNum function={setEtherReceivedByProjectId} title="Enter Project Id" />
+                        {etherReceivedByProjectId}
                     </FeatureCard>
-                    <FeatureCard title="Get No Of Surveys Handler" buttonTitle="Get" buttonFunction={getNoOfSurveysHandler}>
+                    <FeatureCard title="Get No Of Surveys" buttonTitle="Get" buttonFunction={getNoOfSurveysHandler}>
                     </FeatureCard>
                 </Row>
             </div>
