@@ -25,6 +25,7 @@
     "next": "13.0.7",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-datepicker": "4.8.0",
     "solc": "^0.8.17",
     "typescript": "4.9.4",
     "web3": "^1.7.4"
