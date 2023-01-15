@@ -123,7 +123,7 @@ export function DynamicForm2 (props: any) {
             {props.formFields.map((form, index) => {
               return (
                 <div key={index} style={{ display: "flex" }}>
-                  <Input onChange={(e:any) => handleFormChange("amount", e.target.value, index)} placeholder='Choice' value={form.amount} style={{ width: '90%' }} />
+                  <InputNumber onChange={(value:number|null) => handleFormChange("choices", value, index)} placeholder='Choice' value={form.choices} style={{ width: '90%' }} />
                   <Button onClick={() => removeFields(index)} style={{ width: '10%' }} >-</Button>
                 </div>
               )

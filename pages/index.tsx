@@ -66,7 +66,7 @@ export default function myGov() {
             return;
         }
         try{
-            await mygovContract!.methods.donateEther().send({from: address, value: web3!.utils.toWei(etherValue!.toString(), "ether")})
+            await mygovContract!.methods.donateEther().send({from: address, value: Web3.utils.toWei(etherValue!.toString(), "ether")})
             notification['info']({message: "Success"})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
@@ -169,12 +169,12 @@ export default function myGov() {
             notification['error']({message: `Please connect your wallet first`})
             return;
         }
-        const arrAmount = projectSubmitPair.map((d:any) => web3!.utils.toWei(d["amount"].toString(), "ether"));
+        const arrAmount = projectSubmitPair.map((d:any) => Web3.utils.toWei(d["amount"].toString(), "ether"));
         const arrSchedule = projectSubmitPair.map((d:any) => d["schedule"].getTime());
         try{
-            const projectId : number = await mygovContract.methods.submitProjectProposal(projectIpfshash, voteDeadline.getTime(), 
-                                            arrAmount, arrSchedule).send({from: address, value: web3!.utils.toWei("0.1", "ether")})
-            notification['info']({message: `Success with Project Id: ${projectId}`})
+            const projectId = await mygovContract.methods.submitProjectProposal(projectIpfshash, voteDeadline.getTime(), 
+                                            arrAmount, arrSchedule).send({from: address, value: Web3.utils.toWei("0.1", "ether")})
+            notification['info']({message: `Success with Project Id: ${projectId.toString()}`})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
         }
@@ -189,21 +189,21 @@ export default function myGov() {
             notification['error']({message: `Please connect your wallet first`})
             return;
         }
-        if(surveyNumChoices === null || surveyNumChoices === null){
+        if(surveyNumChoices === null || surveyAtMostChoice === null){
             notification['error']({message: `Please enter a valid number`})
             return;
         }
         try{
-            const surveyId: number = await mygovContract.methods.submitSurvey(surveyIpfshash, surveyDeadline.getTime(), 
-                                            surveyNumChoices, surveyAtMostChoice).send({from: address, value: web3!.utils.toWei("0.04", "ether")})
-            notification['info']({message: `Success with Survey Id: ${surveyId}`})
+            const surveyId = await mygovContract.methods.submitSurvey(surveyIpfshash, surveyDeadline.getTime(), 
+                                            surveyNumChoices, surveyAtMostChoice).send({from: address, value: Web3.utils.toWei("0.04", "ether")})
+            notification['info']({message: `Success with Survey Id: ${surveyId.toString()}`})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
         }
     }
 
     const [surveyId, setSurveyId] = useState<number|null>(null);
-    const [surveyChoices, setSurveyChoices] = useState([])
+    const [surveyChoices, setSurveyChoices] = useState<any>([])
     const takeSurveyHandler = async () => {
         if(address === null){
             notification['error']({message: `Please connect your wallet first`})
@@ -213,7 +213,7 @@ export default function myGov() {
             notification['error']({message: `Please enter a valid number`})
             return;
         }
-        const surveyArr = surveyChoices.map(d => d["choices"]);
+        const surveyArr = surveyChoices.map((d:any) => d["choices"].toString());
         try{
             await mygovContract.methods.takeSurvey(surveyId, surveyArr).send({from: address})
             notification['info']({message: "Success"})
@@ -262,7 +262,11 @@ export default function myGov() {
     const getSurveyResultsHandler = async () => {
         try{
             let result = await mygovContractOwner.methods.getSurveyResults(surveyResultsId).call()
-            notification['info']({message: `NumTaken: ${result["numtaken"]}\nResults: ${JSON.stringify(result["results"])}`})
+            notification['info']({message: "Survey Results:",
+            description:<>
+                NumTaken: {result["numtaken"]}<br/>
+                Results: {JSON.stringify(result["results"])}
+            </>})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
         }
@@ -272,7 +276,13 @@ export default function myGov() {
     const getSurveyInfoHandler = async () => {
         try{
             let result = await mygovContractOwner.methods.getSurveyInfo(surveyInfoId).call()
-            notification['info']({message: `Ipfshash: ${result["ipfshash"]}\nSurvey Deadline: ${result["surveydeadline"]}\nNumChoices: ${result["numchoices"]}\nAt Most Choice: ${result["atmostchoices"]}`})
+            notification['info']({message: "Survey Info:",
+            description:<>
+                Ipfshash: {result["ipfshash"]}<br/>
+                Survey Deadline: {(new Date(parseInt(result["surveydeadline"]))).toUTCString()}<br/>
+                NumChoices: {result["numchoices"]}<br/>
+                At Most Choice: {result["atmostchoice"]}
+            </>})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
         }
@@ -302,7 +312,7 @@ export default function myGov() {
     const getProjectNextPaymentHandler = async () => {
         try{
             let result = await mygovContractOwner.methods.getProjectNextPayment(projectNextPaymentId).call()
-            notification['info']({message: result.toString()})
+            notification['info']({message: Web3.utils.fromWei(result, "ether")})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
         }
@@ -323,6 +333,13 @@ export default function myGov() {
         try{
             let result = await mygovContractOwner.methods.getProjectInfo(projectInfoId).call()
             notification['info']({message: result.toString()})
+            notification['info']({message: "Project Info:",
+            description:<>
+                Ipfshash: {result["ipfshash"]}<br/>
+                Vote Deadline: {(new Date(parseInt(result["votedeadline"]))).toUTCString()}<br/>
+                Payment Amounts: {JSON.stringify(result["paymentamounts"].map((value:any) => Web3.utils.fromWei(value, "ether")))}<br/>
+                Pay Schedule: {JSON.stringify(result["payschedule"].map((value:any) => (new Date(parseInt(value))).toUTCString()))}
+            </>})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
         }
@@ -350,7 +367,7 @@ export default function myGov() {
     const getEtherReceivedByProjectHandler = async () => {
         try{
             let result = await mygovContractOwner.methods.getEtherReceivedByProject(etherReceivedByProjectId).call()
-            notification['info']({message: result.toString()})
+            notification['info']({message: Web3.utils.fromWei(result, "ether")})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
         }
@@ -424,7 +441,7 @@ export default function myGov() {
                     </FeatureCard>
                     <FeatureCard title="Submit Survey" buttonTitle="Submit" buttonFunction={submitSurveyHandler}>
                         <InputStr function={setSurveyIpfshash} title='Enter Ipfshash' />
-                        <DateInput function={setSurveyDeadline} title="Deadline" value={voteDeadline} width="%100" placeholder={false}/>
+                        <DateInput function={setSurveyDeadline} title="Deadline" value={surveyDeadline} width="%100" placeholder={false}/>
                         <InputNum function={setSurveyNumChoices} title="Enter Survey's Number of Choices" />
                         <InputNum function={setSurveyAtMostChoice} title="Enter Survey's At Most Choice" />
                     </FeatureCard>
