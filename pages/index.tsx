@@ -2,20 +2,32 @@ import Head from 'next/head'
 import React,{ useState } from 'react'
 import { Row, notification } from 'antd'
 import Web3 from 'web3'
-import mygovContract from '../blockchain/mygov'
+import {mygovContractOwner, mygovContractDeploy} from '../blockchain/mygov'
 import {FeatureCard, InputNum, InputStr, RadioBoolean, DateInput, DynamicForm2, DynamicForm1} from './components'
+import BN from 'bn.js'
+
 
 declare var window: any
 
 export default function myGov() {
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    let web3 = null
+
+    const [web3, setWeb3] = useState<Web3|null>(null)
+    const [address, setAddress] = useState<string|null>(null)
+    const [mygovContract, setMyGovContract] = useState<any>(null)
 
     const connectWalletHandler = async () => {
       if(typeof window !== "undefined" && typeof window.ethereum !== "undefined"){
         try{
             await window.ethereum.request({ method: "eth_requestAccounts" })
-            web3 = new Web3(window.ethereum)
+            const tempWeb3 = new Web3(window.ethereum)
+            setWeb3(tempWeb3)
+            const accounts = await tempWeb3.eth.getAccounts()
+            setAddress(accounts[0])
+            const mygov = mygovContractDeploy(web3)
+            setMyGovContract(mygov)
+            
+            notification['info']({message: "Account connected successfully"})
         } catch(err: any){
             notification['error']({message: `Error while wallet connection: ${err.message}`})
         }
@@ -26,15 +38,25 @@ export default function myGov() {
 
     const [etherValue, setEtherValue] = useState<number|null>(null);
     const donateEtherHandler = async () => {
+        if(address === null){
+            notification['error']({message: `Please connect your wallet first`})
+        }
         if(etherValue === null){
             notification['error']({message: `Please enter a valid number`})
         }
-        // Buralar değişmeli
-        await mygovContract.methods.donateEther().call()
+        try{
+            await mygovContract!.methods.donateEther().send({from: address, value: web3!.utils.toWei(etherValue!.toString(), "ether")})
+            notification['info']({message: "Success"})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [myGovTokenValue, setMyGovTokenValue] = useState<number|null>(null);
     const donateMyGovTokenHandler = async () => {
+        if(web3 === null){
+            notification['error']({message: `Please connect your wallet first`})
+        }
         if(myGovTokenValue === null){
             notification['error']({message: `Please enter a valid number`})
         }
@@ -42,24 +64,40 @@ export default function myGov() {
     }
 
     const faucetHandler = async () => {
-        await mygovContract.methods.faucet().call()
+        if(web3 === null){
+            notification['error']({message: `Please connect your wallet first`})
+        }
+        try{
+            await mygovContract.methods.faucet().send({ from: address})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
     }
 
     const [memAddrDelValue, setMemAddrDelValue] = useState("");
     const [projectIdDelValue, setProjectIdDelValue] = useState<number|null>(null);
     const delegateVoteHandler = async () => {
+        if(projectIdDelValue === null){
+            notification['error']({message: `Please enter a valid number`})
+        }
         await mygovContract.methods.delegateVoteTo("address", 1).call()
     }
 
     const [projectIdPropValue, setProjectIdPropValue] = useState<number|null>(null);
     const [choicePropValue, setChoicePropValue] = useState<boolean>(false);
     const voteForProjectProposalHandler = async () => {
+        if(projectIdPropValue === null){
+            notification['error']({message: `Please enter a valid number`})
+        }
         await mygovContract.methods.voteForProjectProposal(1, true).call()
     }
 
     const [projectIdPayValue, setProjectIdPayValue] = useState<number|null>(null);
     const [choicePayValue, setChoicePayValue] = useState<boolean>(false);
     const voteForProjectPaymentHandler = async () => {
+        if(projectIdPayValue === null){
+            notification['error']({message: `Please enter a valid number`})
+        }
         await mygovContract.methods.voteForProjectPayment(1, true).call()
     }
 
@@ -75,6 +113,9 @@ export default function myGov() {
     const [surveyNumChoices, setSurveyNumChoices] = useState<number|null>(null);
     const [surveyAtMostChoice, setSurveyAtMostChoice] = useState<number|null>(null);
     const submitSurveyHandler = async () => {
+        if(surveyNumChoices === null || surveyNumChoices === null){
+            notification['error']({message: `Please enter a valid number`})
+        }
         await mygovContract.methods.submitSurvey().call()
     }
 
