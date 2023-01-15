@@ -37,8 +37,22 @@ export default function myGov() {
     }
 
     
-    const [etherValue, setEtherValue] = useState<number|null>(null);
-    const donateEtherHandler = async () => {
+    const [destAddress, setDestAddress] = useState("");
+    const [tokenAmount, setTokenAmount] = useState<number|null>(null);
+    const transferTokenHandler = async () => {
+        if(address === null){
+            notification['error']({message: `Please connect your wallet first`})
+        }
+        if(etherValue === null){
+            notification['error']({message: `Please enter a valid number`})
+        }
+        try{
+            await mygovContract!.methods.transferToken(destAddress, tokenAmount).send({from: address })
+            notification['info']({message: "Success"})
+        } catch(err: any){
+            notification['error']({message: `Error while operation ${err.message}`})
+        }
+    }
 
     const [etherValue, setEtherValue] = useState<number|null>(null);
     const donateEtherHandler = async () => {
@@ -128,12 +142,13 @@ export default function myGov() {
 
     const [projectIpfshash, setProjectIpfshash] = useState("");
     const [voteDeadline, setVoteDeadline] = useState(new Date());
-    const [projectSubmitPair, setProjectSubmitPair] = useState([])
+    const [projectSubmitPair, setProjectSubmitPair] = useState<any>([])
     const submitProjectProposalHandler = async () => {
-        const arrAmount = projectSubmitPair.map(d => d["amount"]);
-        const arrSchedule = projectSubmitPair.map(d => d["schedule"]);
+        const arrAmount = projectSubmitPair.map((d:any) => web3!.utils.toWei(d["amount"].toString(), "ether"));
+        const arrSchedule = projectSubmitPair.map((d:any) => d["schedule"].getTime());
         try{
-            const projectId : number = await mygovContract.methods.submitProjectProposal(projectIpfshash, voteDeadline.getTime(), arrAmount, arrSchedule).send({from: address})
+            const projectId : number = await mygovContract.methods.submitProjectProposal(projectIpfshash, voteDeadline.getTime(), 
+                                            arrAmount, arrSchedule).send({from: address, value: web3!.utils.toWei("0.1", "ether")})
             notification['info']({message: `Success with Project Id: ${projectId}`})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
@@ -149,7 +164,8 @@ export default function myGov() {
             notification['error']({message: `Please enter a valid number`})
         }
         try{
-            const surveyId: number = await mygovContract.methods.submitSurvey(surveyIpfshash, surveyDeadline.getTime(), surveyNumChoices, surveyAtMostChoice).send({from: address})
+            const surveyId: number = await mygovContract.methods.submitSurvey(surveyIpfshash, surveyDeadline.getTime(), 
+                                            surveyNumChoices, surveyAtMostChoice).send({from: address, value: web3!.utils.toWei("0.04", "ether")})
             notification['info']({message: `Success with Survey Id: ${surveyId}`})
         } catch(err: any){
             notification['error']({message: `Error while operation ${err.message}`})
@@ -330,6 +346,10 @@ export default function myGov() {
             
             <div className="card-container" style={{ padding: "25px", backgroundColor: '#F6F6F6'}}>
                 <Row style={{marginTop: 50}}>
+                    <FeatureCard title="Transfer Token to Another User" buttonTitle="Transfer" buttonFunction={transferTokenHandler}>
+                        <InputStr function={setDestAddress} title='Enter Destination Address' />
+                        <InputNum function={setTokenAmount} title='Enter Token Amount' />
+                    </FeatureCard>
                     <FeatureCard title="Donate Ethereum To MyGov" buttonTitle="Donate Ethereum" buttonFunction={donateEtherHandler}>
                         <InputNum function={setEtherValue} title='Enter Ether Amount' />
                     </FeatureCard>
