@@ -225,21 +225,59 @@ export default function myGov() {
         await mygovContract.methods.withdrawProjectPayment(1).call()
     }
 
+    const [surveyResultsId, setSurveyResultsId] = useState<number|null>(null);
     const getSurveyResultsHandler = async () => {
+        let result = await mygovContract.methods.getSurveyResults(1).call()
+    }
+    
+    const [surveyInfoId, setSurveyInfoId] = useState<number|null>(null);
+    const getSurveyInfoHandler = async () => {
         let result = await mygovContract.methods.getSurveyInfo(1).call()
     }
 
+    const [surveyOwnerId, setSurveyOwnerId] = useState<number|null>(null);
     const getSurveyOwnerHandler = async () => {
         let surverOwner = await mygovContract.methods.getSurveyOwner(1).call()
     }
 
+    const [isProjectFundedId, setIsProjectFundedId] = useState<number|null>(null);
     const getIsProjectFundedHandler = async () => {
         let isFunded: boolean = await mygovContract.methods.getIsProjectFunded(1).call()
     }
 
-    const getProjectNextScheduleHandler = async () => {
-        let nextSchedule: number = await mygovContract.methods.getProjectNextSchedule(1).call()
+    const [projectNextPaymentId, setProjectNextPaymentId] = useState<number|null>(null);
+    const getProjectNextPaymentHandler = async () => {
+        let result = await mygovContract.methods.getProjectNextPayment(1).call()
     }
+
+    const [projectOwnerId, setProjectOwnerId] = useState<number|null>(null);
+    const getProjectOwnerHandler = async () => {
+        let result = await mygovContract.methods.getProjectOwner(1).call()
+    }
+
+    const [projectInfoId, setProjectInfoId] = useState<number|null>(null);
+    const getProjectInfoHandler = async () => {
+        let result = await mygovContract.methods.getProjectInfo(1).call()
+    }
+
+    const getNoOfProjectProposalsHandler = async () => {
+        let result = await mygovContract.methods.getNoOfProjectProposals().call()
+    }
+
+    const getNoOfFundedProjectsHandler = async () => {
+        let result = await mygovContract.methods.getNoOfFundedProjects().call()
+    }
+
+    const [etherReceivedByProjectId, setEtherReceivedByProjectId] = useState<number|null>(null);
+    const getEtherReceivedByProjectHandler = async () => {
+        let result = await mygovContract.methods.getEtherReceivedByProject(1).call()
+    }
+
+    const getNoOfSurveysHandler = async () => {
+        let result = await mygovContract.methods.getNoOfSurveys().call()
+    }
+
+
 
     return(
         <div>
@@ -309,6 +347,36 @@ export default function myGov() {
                     </FeatureCard>
                     <FeatureCard title="WithdrawProjectPayment" buttonTitle="Submit" buttonFunction={withdrawProjectPaymentHandler}>
                         <InputNum function={setWithdrawId} title="Enter Project Id" />
+                    </FeatureCard>
+                    <FeatureCard title="Get Survey Results" buttonTitle="Get" buttonFunction={getSurveyResultsHandler}>
+                        <InputNum function={setSurveyResultsId} title="Enter Survey Id" />
+                    </FeatureCard>
+                    <FeatureCard title="Get Survey Info" buttonTitle="Get" buttonFunction={getSurveyInfoHandler}>
+                        <InputNum function={setSurveyInfoId} title="Enter Survey Id" />
+                    </FeatureCard>
+                    <FeatureCard title="Get Survey Owner" buttonTitle="Get" buttonFunction={getSurveyOwnerHandler}>
+                        <InputNum function={setSurveyOwnerId} title="Enter Survey Id" />
+                    </FeatureCard>
+                    <FeatureCard title="Get If Project Is Funded" buttonTitle="Get" buttonFunction={getIsProjectFundedHandler}>
+                        <InputNum function={setIsProjectFundedId} title="Enter Project Id" />
+                    </FeatureCard>
+                    <FeatureCard title="Get Project Next Payment" buttonTitle="Get" buttonFunction={getProjectNextPaymentHandler}>
+                        <InputNum function={setProjectNextPaymentId} title="Enter Project Id" />
+                    </FeatureCard>
+                    <FeatureCard title="Get Project Owner" buttonTitle="Get" buttonFunction={getProjectOwnerHandler}>
+                        <InputNum function={setProjectOwnerId} title="Enter Project Id" />
+                    </FeatureCard>
+                    <FeatureCard title="Get Project Info" buttonTitle="Get" buttonFunction={getProjectInfoHandler}>
+                        <InputNum function={setProjectInfoId} title="Enter Project Id" />
+                    </FeatureCard>
+                    <FeatureCard title="Get No Of Project Proposals" buttonTitle="Get" buttonFunction={getNoOfProjectProposalsHandler}>
+                    </FeatureCard>
+                    <FeatureCard title="Get No Of Funded Projects" buttonTitle="Get" buttonFunction={getNoOfFundedProjectsHandler}>
+                    </FeatureCard>
+                    <FeatureCard title="Get Ether Received By Project" buttonTitle="Get" buttonFunction={getEtherReceivedByProjectHandler}>
+                        <InputNum function={setEtherReceivedByProjectId} title="Enter Project Id" />
+                    </FeatureCard>
+                    <FeatureCard title="Get No Of Surveys Handler" buttonTitle="Get" buttonFunction={getNoOfSurveysHandler}>
                     </FeatureCard>
                 </Row>
             </div>
