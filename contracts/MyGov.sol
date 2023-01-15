@@ -155,9 +155,7 @@ contract MyGovToken is ERC20("MyGov Token", "MGT") {
     }
 
     // Send ethereum to coinbase account.
-    function donateEther() external payable {
-        payable(address(this)).transfer(msg.value);
-    }
+    function donateEther() external payable {}
 
     // Send token to coinbase account.
     function donateMyGovToken(uint256 amount) public {
